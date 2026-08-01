@@ -38,6 +38,18 @@ A task contract is short-lived and specific to one objective. It describes where
 
 An architecture contract is long-lived repository policy. It describes layers, modules, and permitted dependency directions regardless of which task is active. A change can stay inside its task contract while violating the architecture contract, or satisfy the architecture contract while expanding beyond its declared task scope. The contracts answer different questions and neither replaces the other.
 
-## Foundation boundary
+## Scope diff analyzer
 
-This foundation only defines, loads, validates, and normalizes task contracts. It does not inspect Git diffs, match changed paths, classify files, count changed files, produce RG008 findings, block changes, call an LLM, access the network, or modify source code. Scope analysis and budget enforcement belong to later RG008 changes.
+Standard repository checks compare the changed paths with the optional task contract and expose the result as `scopeFindings`. The same RG008 entries are appended to the existing top-level `findings` array. They are deterministic, non-waivable warnings: they do not change `ok` or `exitCode`.
+
+RG008 reports three finding types:
+
+- `FORBIDDEN_PATH` when a changed file matches `forbiddenPaths`;
+- `OUT_OF_SCOPE_CHANGE` when a changed file does not match `allowedPaths`;
+- `BUDGET_EXCEEDED` when the number of unique changed files exceeds `budget.maxFiles`.
+
+Forbidden paths take precedence, so one changed file produces at most one path finding. `.repo-governance/task-contract.json` is governance metadata and is excluded from path findings and the file budget. Path findings use stable repository-path order, followed by the optional budget finding. Adoption checks skip task scope analysis because a repository snapshot is not an individual task diff.
+
+## Advisory boundary
+
+The analyzer reports observed path and file-count facts only. It does not interpret `allowedChangeCategories`, block changes, apply waivers, call an LLM, access the network, or modify source code. Enforcement and Agent integration belong to later RG008 changes.
