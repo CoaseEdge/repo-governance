@@ -50,6 +50,8 @@ RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理
 
 RG007 通过 `.repo-governance/architecture-contract.json` 提供显式启用的架构治理。它确定性扫描 JavaScript、TypeScript 与 Python import，构建文件及显式模块依赖图，阻断本次改动涉及的分层违规，并把循环依赖报告为非阻断 warning。架构风格与外部包含义只由仓库契约定义；规则引擎不调用 LLM，也不改写代码。详见 [架构治理与 RG007](docs/architecture-governance.md)。
 
+提交 `.repo-governance/architecture-baseline.json` 后才会单独启用架构漂移治理。使用 `repo-governance architecture baseline` 创建确定性快照，使用 `repo-governance architecture drift` 查看指标、事实增删和 0–100 健康分；低于 70 分会阻断，70–99 分的 warning 可见但不令检查失败。详见 [架构漂移](docs/architecture-drift.md)。
+
 v1.3 的迁移与发布边界见 [v1.3 release](docs/v1.3-release.md)。
 
 每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。

@@ -23,6 +23,8 @@ import { listEngines, pruneEngines } from "./engines.mjs";
 import { checkVersion } from "./release-catalog.mjs";
 import { verifyCiExecution } from "./verify-execution.mjs";
 import { readPrePushStdin, verifyPrePushExecution } from "./pre-push.mjs";
+import { createArchitectureBaseline } from "./architecture/baseline.mjs";
+import { reportArchitectureDrift } from "./architecture/drift.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -56,6 +58,8 @@ function help() {
   preflight [--json]
   prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
+  architecture baseline [--replace] [--json]
+  architecture drift [--json]
   verify-execution --profile <id> --ci --event-file <json> [--json]
   verify-execution --pre-push --remote <name> --remote-url <url> [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
@@ -235,6 +239,20 @@ export async function main(argv, context = {}) {
     }
     if (command === "check") {
       const result = checkRepository(repo, { base: parsed.flags.base, head: parsed.flags.head });
+      emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
+    if (command === "architecture" && subcommand === "baseline") {
+      const invalidArguments = parsed.positional.length !== 2 || Object.keys(parsed.flags).some((flag) => !["replace", "json"].includes(flag));
+      if (invalidArguments) throw new GovernanceError("architecture baseline accepts only --replace and --json.", { code: "RG_INVOCATION" });
+      const result = (context.createArchitectureBaseline || createArchitectureBaseline)(repo, { replace: Boolean(parsed.flags.replace) });
+      emit(result, json, stdout);
+      return result.exitCode;
+    }
+    if (command === "architecture" && subcommand === "drift") {
+      const invalidArguments = parsed.positional.length !== 2 || Object.keys(parsed.flags).some((flag) => flag !== "json");
+      if (invalidArguments) throw new GovernanceError("architecture drift accepts only the optional --json flag.", { code: "RG_INVOCATION" });
+      const result = (context.reportArchitectureDrift || reportArchitectureDrift)(repo);
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
     }

@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { repositorySnapshotPaths } from "../git.mjs";
 import { matchesAny } from "../glob.mjs";
-import { ARCHITECTURE_CONTRACT_FILE, architectureContractError } from "./contract.mjs";
+import { architectureContractError } from "./contract.mjs";
+import { ARCHITECTURE_BASELINE_FILE, ARCHITECTURE_CONTRACT_FILE } from "./paths.mjs";
 import { languageForPath, scanSource, SUPPORTED_SOURCE_EXTENSIONS } from "./scanner.mjs";
 
 function compare(left, right) {
@@ -65,7 +66,8 @@ function edgeOrder(left, right) {
 }
 
 export function buildArchitectureGraph(repo, contract) {
-  const repositoryPaths = repositorySnapshotPaths(repo).filter((path) => path !== ARCHITECTURE_CONTRACT_FILE && existsSync(join(repo, path)));
+  const excludedPaths = new Set([ARCHITECTURE_CONTRACT_FILE, ARCHITECTURE_BASELINE_FILE]);
+  const repositoryPaths = repositorySnapshotPaths(repo).filter((path) => !excludedPaths.has(path) && existsSync(join(repo, path)));
   const pathSet = new Set(repositoryPaths);
   const nodes = [];
   const skipped = [];

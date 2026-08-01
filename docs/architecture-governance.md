@@ -74,6 +74,6 @@ When no contract exists, `architectureFindings` is empty and `architectureGraph.
 
 RG007 does not evaluate runtime dependency injection, reflection, generated imports, non-literal `require()` or dynamic `import()`, JavaScript/TypeScript path aliases, Python path configuration, or re-export semantics. Ambiguous and unresolved references are recorded rather than guessed. Files in unsupported languages that match contract paths are returned as skipped facts.
 
-Static analysis cannot prove runtime call direction or architectural quality. Circular dependencies are structural warnings in RG007; architecture drift and baseline scoring are separate future capabilities.
+Static analysis cannot prove runtime call direction or architectural quality. Circular dependencies are structural warnings in RG007. Repository-owned baselines, drift metrics, and health scoring are described in [Architecture drift](architecture-drift.md).
 
 An LLM is not used for enforcement because identical repository bytes and contract bytes must produce identical governance results. Agent adapters may later explain the structured report, but they cannot add findings or override the rule engine. RG007 detects and reports; it never moves files, rewrites imports, or modifies repository architecture.

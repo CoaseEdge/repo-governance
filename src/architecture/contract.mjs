@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { GovernanceError } from "../errors.mjs";
+import { ARCHITECTURE_CONTRACT_FILE } from "./paths.mjs";
 
-export const ARCHITECTURE_CONTRACT_FILE = ".repo-governance/architecture-contract.json";
+export { ARCHITECTURE_CONTRACT_FILE } from "./paths.mjs";
 
 function compare(left, right) {
   return Buffer.from(left).compare(Buffer.from(right));
