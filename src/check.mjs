@@ -6,6 +6,8 @@ import { evaluateRg002 } from "./rg002.mjs";
 import { evaluateRg003 } from "./rg003.mjs";
 import { evaluateRg004 } from "./rg004.mjs";
 import { evaluateRg006 } from "./rg006.mjs";
+import { evaluateRg007 } from "./rg007.mjs";
+import { readArchitectureContract } from "./architecture/contract.mjs";
 import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
@@ -25,13 +27,16 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const rg003 = evaluateRg003(repo, config);
   const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
   const rg006 = evaluateRg006(repo, config);
+  const architectureContract = readArchitectureContract(repo, { changedPaths: changed });
+  const rg007 = evaluateRg007(repo, architectureContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings];
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings];
+  const blockingFindings = findings.filter((finding) => finding.rule !== "RG007" || finding.severity !== "warning");
   return {
     schemaVersion: 1,
     mode,
-    ok: findings.length === 0,
-    exitCode: findings.length === 0 ? 0 : 1,
+    ok: blockingFindings.length === 0,
+    exitCode: blockingFindings.length === 0 ? 0 : 1,
     endpoints,
     changedPaths: changed,
     findings,
@@ -40,6 +45,8 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     testCommandGraph: rg002.reachable,
     executionCommandGraphs: rg006.commandGraphs,
     executionContractVerified: rg006.findings.length === 0,
+    architectureFindings: rg007.findings,
+    architectureGraph: rg007.architectureGraph,
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",

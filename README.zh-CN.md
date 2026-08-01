@@ -48,6 +48,8 @@ repo-governance preflight --json
 
 RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理器身份、依赖准备、生命周期策略、有序 build/codegen/test 阶段与消费者声明。静态检查绝不声称已验证 clean checkout 或语义覆盖。详见 [执行契约与 RG006](docs/execution-contracts.md)。
 
+RG007 通过 `.repo-governance/architecture-contract.json` 提供显式启用的架构治理。它确定性扫描 JavaScript、TypeScript 与 Python import，构建文件及显式模块依赖图，阻断本次改动涉及的分层违规，并把循环依赖报告为非阻断 warning。架构风格与外部包含义只由仓库契约定义；规则引擎不调用 LLM，也不改写代码。详见 [架构治理与 RG007](docs/architecture-governance.md)。
+
 v1.3 的迁移与发布边界见 [v1.3 release](docs/v1.3-release.md)。
 
 每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。

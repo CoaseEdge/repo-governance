@@ -119,6 +119,11 @@
       "id": "v1.3-pr-8-release",
       "description": "Preset migration, required checks, release metadata, bilingual documentation, and end-to-end acceptance",
       "passes": true
+    },
+    {
+      "id": "rg007-architecture-governance-foundation",
+      "description": "Deterministic architecture contracts, static dependency graphs, and RG007 enforcement",
+      "passes": true
     }
   ]
 }
