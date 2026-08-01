@@ -1,6 +1,6 @@
 # repo-governance for Claude Code
 
-Use `repo-governance` as the only deterministic governance engine. Every Agent-facing invocation must request JSON, preserve `schemaVersion`, and explain the returned findings without recreating RG001–RG005.
+Use `repo-governance` as the only deterministic governance engine. Every Agent-facing invocation must request JSON, preserve `schemaVersion`, and explain the returned findings without recreating any RG rule or architecture drift calculation.
 
 ## Shared workflow
 
@@ -13,4 +13,4 @@ Use `repo-governance` as the only deterministic governance engine. Every Agent-f
 
 Never infer a Preset, compute rule findings, hash public commands, reconstruct workflow allowlists, guess test tiers from paths, or write GitHub state. Preserve `semanticCoverageVerified: false`: test-category evidence is not proof of semantic coverage.
 
-The six prompt templates under `commands/` map one-to-one to the shared Playbook IDs. They may be copied explicitly into a repository's `.claude/commands/` directory; the canonical templates remain version-locked with the installed engine assets. Optional Hook templates under `hooks/` must also be installed explicitly and never authorize remote writes.
+The seven prompt templates under `commands/` map one-to-one to the shared Playbook IDs. They may be copied explicitly into a repository's `.claude/commands/` directory; the canonical templates remain version-locked with the installed engine assets. Optional Hook templates under `hooks/` must also be installed explicitly and never authorize remote writes.

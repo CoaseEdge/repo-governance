@@ -10,6 +10,7 @@ import { temporaryDirectory } from "./helpers.mjs";
 const root = fileURLToPath(new URL("../adapters/codex/skills", import.meta.url));
 const playbooks = fileURLToPath(new URL("../playbooks", import.meta.url));
 const expected = [
+  "architecture-review",
   "bootstrap-repo-governance",
   "classify-test-tier",
   "plan-change-test-impact",
@@ -54,6 +55,19 @@ test("Skills delegate hard decisions to CLI structured output", () => {
   assert.match(combined, /preflight --json/);
   assert.doesNotMatch(combined, /definitionHash|businessPaths|createHash|globToRegExp/);
   for (const name of expected) assert.ok(readFileSync(join(playbooks, `${name}.md`), "utf8").length > 200);
+});
+
+test("architecture review explains one deterministic report without implementing decisions", () => {
+  const skill = readFileSync(join(root, "architecture-review", "SKILL.md"), "utf8");
+  const playbook = readFileSync(join(playbooks, "architecture-review.md"), "utf8");
+  assert.match(skill, /repo-governance check --json/);
+  for (const field of ["architectureFindings", "architectureGraph", "architectureDriftFindings", "architectureDrift"]) {
+    assert.match(skill, new RegExp(`\\b${field}\\b`));
+    assert.match(playbook, new RegExp(`\\b${field}\\b`));
+  }
+  assert.match(playbook, /skipped[\s\S]+never means the architecture is healthy/);
+  assert.match(playbook, /suggestion for review, not a new finding/);
+  assert.doesNotMatch(skill, /blockingThreshold|allowedDependencies|forbiddenDependencies|createHash/);
 });
 
 test("release staging materializes the canonical playbook as each Skill reference", () => {

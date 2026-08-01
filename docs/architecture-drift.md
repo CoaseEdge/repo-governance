@@ -58,4 +58,4 @@ Drift findings use `rule: "ARCHITECTURE_DRIFT"`, are never waivable, and are app
 
 ## Enforcement boundary
 
-Drift calculation is deterministic, offline, and uses the same static RG007 graph as local checks and CI. It does not call an LLM, access the network, emit telemetry, infer undeclared modules, or guess unresolved imports. It detects and reports change; it never moves files, rewrites imports, updates the contract, or replaces a baseline automatically. Agent advisors may explain the structured report, but they must not recalculate findings or override the score.
+Drift calculation is deterministic, offline, and uses the same static RG007 graph as local checks and CI. It does not call an LLM, access the network, emit telemetry, infer undeclared modules, or guess unresolved imports. It detects and reports change; it never moves files, rewrites imports, updates the contract, or replaces a baseline automatically. The shared `architecture-review` Playbook lets Codex and Claude Code explain the structured report, but they must not recalculate findings or override the score.

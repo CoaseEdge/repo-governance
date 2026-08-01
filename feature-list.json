@@ -129,6 +129,11 @@
       "id": "architecture-drift-detection",
       "description": "Deterministic architecture baselines, drift metrics, health scoring, and check integration",
       "passes": true
+    },
+    {
+      "id": "architecture-agent-advisor",
+      "description": "Shared Codex and Claude advisor for deterministic architecture governance reports",
+      "passes": true
     }
   ]
 }
