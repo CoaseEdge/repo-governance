@@ -48,6 +48,8 @@ The three gates have separate jobs: Agent preflight discovers whether work may s
 
 RG006 validates the separately versioned execution contract: registered runtimes, exact package-manager identities, dependency preparation, lifecycle policy, ordered build/codegen/test stages, and declared consumers. Static checks never claim clean-checkout or semantic-coverage evidence. See [Execution contracts and RG006](docs/execution-contracts.md).
 
+RG007 provides opt-in architecture governance through `.repo-governance/architecture-contract.json`. It deterministically scans JavaScript, TypeScript, and Python imports, builds file and explicit-module dependency graphs, blocks changed-path layer violations, and reports dependency cycles as non-blocking warnings. Architecture styles and external package meanings are defined only by the repository contract; the engine never calls an LLM or rewrites code. See [Architecture governance and RG007](docs/architecture-governance.md).
+
 The v1.3 migration and release boundary is summarized in [v1.3 release](docs/v1.3-release.md).
 
 Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
