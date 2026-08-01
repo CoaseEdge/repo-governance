@@ -57,6 +57,13 @@
       "fixture": "check",
       "consumes": ["ok", "findings"],
       "classificationLabels": ["true-bug", "stale-test", "stale-workflow", "wrong-ci-tier", "insufficient-evidence"]
+    },
+    {
+      "id": "architecture-review",
+      "commandTemplates": ["repo-governance check --json"],
+      "fixture": "architecture-review",
+      "consumes": ["architectureFindings", "architectureGraph", "architectureDriftFindings", "architectureDrift"],
+      "classificationLabels": ["error", "warning", "evaluated", "skipped"]
     }
   ]
 }

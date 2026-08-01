@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Review"
+  short_description: "Explain deterministic architecture governance reports"
+  default_prompt: "Use $architecture-review to explain this repository's architecture governance report."

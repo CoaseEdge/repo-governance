@@ -55,6 +55,22 @@ test("both adapter declarations consume the same versioned report fixtures", () 
   assert.equal(fixtures.preflight.repoState, "unmanaged");
 });
 
+test("architecture advisors consume the same RG007 and drift report fields", () => {
+  const expectedFields = ["architectureFindings", "architectureGraph", "architectureDriftFindings", "architectureDrift"];
+  for (const adapterRoot of [codexRoot, claudeRoot]) {
+    const playbook = contract(adapterRoot).playbooks.find(({ id }) => id === "architecture-review");
+    assert.deepEqual(playbook.commandTemplates, ["repo-governance check --json"]);
+    assert.equal(playbook.fixture, "architecture-review");
+    assert.deepEqual(playbook.consumes, expectedFields);
+  }
+  const fixture = fixtures["architecture-review"];
+  assert.equal(fixture.schemaVersion, 1);
+  assert.equal(fixture.architectureFindings[0].rule, "RG007");
+  assert.equal(fixture.architectureFindings[0].target.module, "database");
+  assert.equal(fixture.architectureDriftFindings[0].rule, "ARCHITECTURE_DRIFT");
+  assert.equal(fixture.architectureDrift.health.after, 86);
+});
+
 test("Claude prompt templates map one-to-one to canonical Playbooks and contract IDs", () => {
   const claude = contract(claudeRoot);
   for (const playbook of claude.playbooks) {
@@ -76,5 +92,6 @@ test("Agent wrappers contain no known governance rule implementation primitives"
   ];
   const combined = files.map((path) => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(combined, /definitionHash|businessPaths|highImpactMappings|workflowAllowedEntries|createHash|globToRegExp/);
+  assert.doesNotMatch(combined, /blockingThreshold|allowedDependencies|forbiddenDependencies|stronglyConnectedComponents/);
   assert.match(combined, /semanticCoverageVerified: false/);
 });

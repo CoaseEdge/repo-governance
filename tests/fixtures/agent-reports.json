@@ -75,5 +75,104 @@
     "schemaVersion": 1,
     "ok": false,
     "findings": [{ "rule": "RG002", "message": "Test tier evidence requires review." }]
+  },
+  "architecture-review": {
+    "schemaVersion": 1,
+    "mode": "standard",
+    "ok": false,
+    "exitCode": 1,
+    "findings": [
+      {
+        "rule": "RG007",
+        "code": "forbidden-dependency",
+        "message": "Layer domain cannot depend on infrastructure.",
+        "file": "src/domain/payment.js",
+        "severity": "error",
+        "waivable": false,
+        "source": { "layer": "domain", "module": null },
+        "target": { "layer": "infrastructure", "module": "database", "file": "src/infrastructure/database.js" },
+        "dependency": { "type": "import", "syntax": "import", "specifier": "../infrastructure/database.js", "resolution": "resolved-file" }
+      },
+      {
+        "rule": "ARCHITECTURE_DRIFT",
+        "code": "architecture-drift-detected",
+        "message": "Architecture health is 86/100 (Needs attention); drift penalties total 14.",
+        "severity": "warning",
+        "waivable": false,
+        "baselineScore": 100,
+        "score": 86
+      }
+    ],
+    "architectureFindings": [
+      {
+        "rule": "RG007",
+        "code": "forbidden-dependency",
+        "message": "Layer domain cannot depend on infrastructure.",
+        "file": "src/domain/payment.js",
+        "severity": "error",
+        "waivable": false,
+        "source": { "layer": "domain", "module": null },
+        "target": { "layer": "infrastructure", "module": "database", "file": "src/infrastructure/database.js" },
+        "dependency": { "type": "import", "syntax": "import", "specifier": "../infrastructure/database.js", "resolution": "resolved-file" }
+      }
+    ],
+    "architectureGraph": {
+      "schemaVersion": 1,
+      "status": "evaluated",
+      "contractPath": ".repo-governance/architecture-contract.json",
+      "architectureStyle": "clean-architecture",
+      "nodes": [
+        { "id": "file:src/domain/payment.js", "type": "file", "path": "src/domain/payment.js", "layer": "domain", "module": null, "language": "javascript", "scanStatus": "scanned" },
+        { "id": "file:src/infrastructure/database.js", "type": "file", "path": "src/infrastructure/database.js", "layer": "infrastructure", "module": "database", "language": "javascript", "scanStatus": "scanned" },
+        { "id": "module:database", "type": "module", "moduleId": "database", "moduleKind": "contract", "paths": ["src/infrastructure/database.js"], "imports": [] }
+      ],
+      "edges": [
+        { "scope": "file", "from": "file:src/domain/payment.js", "to": "file:src/infrastructure/database.js", "type": "import", "syntax": "import", "specifier": "../infrastructure/database.js", "resolution": "resolved-file", "targetPath": "src/infrastructure/database.js" }
+      ],
+      "cycles": [],
+      "skipped": []
+    },
+    "architectureDriftFindings": [
+      {
+        "rule": "ARCHITECTURE_DRIFT",
+        "code": "architecture-drift-detected",
+        "message": "Architecture health is 86/100 (Needs attention); drift penalties total 14.",
+        "severity": "warning",
+        "waivable": false,
+        "baselineScore": 100,
+        "score": 86
+      }
+    ],
+    "architectureDrift": {
+      "schemaVersion": 1,
+      "status": "evaluated",
+      "baselinePath": ".repo-governance/architecture-baseline.json",
+      "contractSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "graphs": {
+        "baselineSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "currentSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "health": { "before": 100, "after": 86, "classification": "Needs attention", "blockingThreshold": 70 },
+      "metrics": {
+        "baseline": { "fileCount": 2, "explicitLocalModuleCount": 1, "layerDependencyCount": 0, "moduleDependencyCount": 0, "moduleImportCount": 0, "fileCycleCount": 0, "moduleCycleCount": 0, "cycleCount": 0, "boundaryViolationCount": 0, "averageCoupling": 0 },
+        "current": { "fileCount": 2, "explicitLocalModuleCount": 1, "layerDependencyCount": 1, "moduleDependencyCount": 0, "moduleImportCount": 0, "fileCycleCount": 0, "moduleCycleCount": 0, "cycleCount": 0, "boundaryViolationCount": 1, "averageCoupling": 0 },
+        "delta": { "averageCoupling": 0, "boundaryViolationCount": 1, "cycleCount": 0, "explicitLocalModuleCount": 0, "fileCount": 0, "fileCycleCount": 0, "layerDependencyCount": 1, "moduleCycleCount": 0, "moduleDependencyCount": 0, "moduleImportCount": 0 }
+      },
+      "changes": {
+        "layerDependencies": { "added": [{ "from": "domain", "to": "infrastructure" }], "removed": [] },
+        "moduleDependencies": { "added": [], "removed": [] },
+        "moduleImports": { "added": [], "removed": [] },
+        "cycles": { "added": [], "removed": [] },
+        "boundaryViolations": {
+          "added": [{ "code": "forbidden-dependency", "sourceFile": "src/domain/payment.js", "sourceLayer": "domain", "sourceModule": null, "targetFile": "src/infrastructure/database.js", "targetLayer": "infrastructure", "targetModule": "database", "targetIdentity": "infrastructure", "dependencyType": "import", "syntax": "import", "specifier": "../infrastructure/database.js", "resolution": "resolved-file" }],
+          "removed": []
+        }
+      },
+      "penalties": { "boundary": 10, "cycles": 0, "dependencies": 4, "coupling": 0, "total": 14 },
+      "recommendations": [
+        { "code": "resolve-boundary-violations", "message": "Resolve newly introduced architecture boundary violations." },
+        { "code": "review-layer-dependencies", "message": "Review newly introduced cross-layer dependency directions against the contract." }
+      ]
+    }
   }
 }
