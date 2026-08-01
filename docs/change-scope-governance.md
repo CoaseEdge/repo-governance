@@ -25,6 +25,16 @@ Place the optional task contract at `.repo-governance/task-contract.json`:
     "source-code",
     "tests"
   ],
+  "drift": {
+    "subsystems": [
+      {
+        "id": "admin",
+        "paths": ["src/admin/**"]
+      }
+    ],
+    "sharedPaths": ["src/shared/**"],
+    "ciReleasePaths": [".github/workflows/**", "scripts/release/**"]
+  },
   "budget": {
     "maxFiles": 30,
     "maxDirectories": 5,
@@ -35,6 +45,8 @@ Place the optional task contract at `.repo-governance/task-contract.json`:
 ```
 
 `taskId` is a stable identifier and `objective` is the human-authored result the task should achieve. Path patterns are repository-relative POSIX globs. `allowedPaths` must contain at least one pattern; `forbiddenPaths` and `migrationPaths` may be empty. `allowedChangeCategories` is optional and defaults to an empty array. Category names are repository-declared lowercase identifiers: the engine does not assign built-in meaning to them.
+
+The optional `drift` object declares how the repository recognizes subsystem, shared-module, and CI/release changes. Subsystems have stable lowercase IDs and one or more explicit path patterns. Missing declarations normalize to empty arrays. The engine does not infer these categories from directory names, framework conventions, or an LLM.
 
 `maxFiles` remains required and positive. `maxDirectories`, `maxMigrations`, and `maxOutOfScopeFiles` are optional non-negative limits, so existing version 1 contracts remain valid. When `maxMigrations` is declared, `migrationPaths` must explicitly identify migration files; the engine never guesses from framework conventions. Direct parent directories are counted once, with repository-root files assigned to `.`. Forbidden files are counted separately and do not consume the out-of-scope allowance.
 
@@ -58,6 +70,20 @@ RG008 reports three finding types:
 
 Forbidden paths take precedence, so one changed file produces at most one path finding. `.repo-governance/task-contract.json` is governance metadata and is excluded from path findings and every budget. Path findings use stable repository-path order, followed by budget findings in contract-field order. Adoption checks skip task scope analysis because a repository snapshot is not an individual task diff.
 
+## Task drift score
+
+Standard checks also expose a `taskDrift` object with `taskDriftScore`, `severity`, and deterministic `reasons`. The score starts at zero and adds:
+
+- 5 for each non-forbidden file outside `allowedPaths`;
+- 10 for each unique declared subsystem touched outside `allowedPaths`;
+- 5 for each file matching `drift.sharedPaths`;
+- 10 for each file matching `drift.ciReleasePaths`;
+- 15 for each file matching `migrationPaths` outside `allowedPaths`.
+
+Evidence is unique and rules are additive, so one path may contribute to more than one declared category. Subsystems count once by ID even when several files match. Reasons use fixed category order and UTF-8 path or ID order. The score is not capped. Severity is `none` at 0, `low` from 1–14, `medium` from 15–29, and `high` from 30 upward. The task contract file is excluded. Missing contracts and adoption checks return the neutral result `{ "taskDriftScore": 0, "severity": "none", "reasons": [] }`.
+
+Task drift is advisory only. It does not emit a finding, change `ok` or `exitCode`, or weaken blocking forbidden-path and budget findings.
+
 ## Enforcement boundary
 
-`FORBIDDEN_PATH` and `BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Drift scoring and Agent integration belong to later RG008 changes.
+`FORBIDDEN_PATH` and `BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent integration belongs to a later RG008 change.

@@ -36,6 +36,35 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/changeCategory" }
     },
+    "drift": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": {
+        "subsystems": [],
+        "sharedPaths": [],
+        "ciReleasePaths": []
+      },
+      "properties": {
+        "subsystems": {
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/subsystem" }
+        },
+        "sharedPaths": {
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/pathPattern" }
+        },
+        "ciReleasePaths": {
+          "type": "array",
+          "default": [],
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/pathPattern" }
+        }
+      }
+    },
     "budget": {
       "type": "object",
       "additionalProperties": false,
@@ -88,6 +117,20 @@
     "changeCategory": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "subsystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "paths"],
+      "properties": {
+        "id": { "$ref": "#/$defs/changeCategory" },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/pathPattern" }
+        }
+      }
     }
   }
 }
