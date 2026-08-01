@@ -8,6 +8,7 @@ import { evaluateRg004 } from "./rg004.mjs";
 import { evaluateRg006 } from "./rg006.mjs";
 import { evaluateRg007 } from "./rg007.mjs";
 import { readArchitectureContract } from "./architecture/contract.mjs";
+import { evaluateArchitectureDrift } from "./architecture/drift.mjs";
 import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
@@ -29,9 +30,10 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const rg006 = evaluateRg006(repo, config);
   const architectureContract = readArchitectureContract(repo, { changedPaths: changed });
   const rg007 = evaluateRg007(repo, architectureContract, changed);
+  const architectureDrift = evaluateArchitectureDrift(repo, architectureContract, rg007.architectureGraph, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings];
-  const blockingFindings = findings.filter((finding) => finding.rule !== "RG007" || finding.severity !== "warning");
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings];
+  const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
   return {
     schemaVersion: 1,
     mode,
@@ -47,6 +49,8 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     executionContractVerified: rg006.findings.length === 0,
     architectureFindings: rg007.findings,
     architectureGraph: rg007.architectureGraph,
+    architectureDriftFindings: architectureDrift.findings,
+    architectureDrift: architectureDrift.architectureDrift,
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",

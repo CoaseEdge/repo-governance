@@ -232,6 +232,8 @@ test("preflight human summary and CLI help expose the public entry point", async
   assert.match(helpOutput.value(), /preflight \[--json\]/);
   assert.match(helpOutput.value(), /repositories register \[path\]/);
   assert.match(helpOutput.value(), /engines prune --dry-run/);
+  assert.match(helpOutput.value(), /architecture baseline \[--replace\] \[--json\]/);
+  assert.match(helpOutput.value(), /architecture drift \[--json\]/);
   assert.match(helpOutput.value(), /version \[check\]/);
 });
 

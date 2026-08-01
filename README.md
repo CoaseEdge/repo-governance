@@ -50,6 +50,8 @@ RG006 validates the separately versioned execution contract: registered runtimes
 
 RG007 provides opt-in architecture governance through `.repo-governance/architecture-contract.json`. It deterministically scans JavaScript, TypeScript, and Python imports, builds file and explicit-module dependency graphs, blocks changed-path layer violations, and reports dependency cycles as non-blocking warnings. Architecture styles and external package meanings are defined only by the repository contract; the engine never calls an LLM or rewrites code. See [Architecture governance and RG007](docs/architecture-governance.md).
 
+Architecture drift is separately enabled by committing `.repo-governance/architecture-baseline.json`. Use `repo-governance architecture baseline` to create the deterministic snapshot and `repo-governance architecture drift` to inspect metrics, added/removed facts, and the 0–100 health score. Scores below 70 block; warnings from 70–99 remain visible without failing the check. See [Architecture drift](docs/architecture-drift.md).
+
 The v1.3 migration and release boundary is summarized in [v1.3 release](docs/v1.3-release.md).
 
 Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.

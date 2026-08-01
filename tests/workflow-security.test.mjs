@@ -157,6 +157,8 @@ test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and 
   for (const path of [
     "schemas/agent-policy.schema.json",
     "schemas/architecture-contract.schema.json",
+    "schemas/architecture-baseline.schema.json",
+    "schemas/architecture-drift-report.schema.json",
     "playbooks/repo-governance-agent-gate.md",
     "adapters/codex/skills/repo-governance-agent-gate/SKILL.md",
     "adapters/codex/hooks/hooks.example.json",
@@ -169,5 +171,6 @@ test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and 
     "schemas/repo-governance.schema.json",
     "docs/execution-contracts.md",
     "docs/architecture-governance.md",
+    "docs/architecture-drift.md",
   ]) assert.equal(readFileSync(join(root, path), "utf8").length > 0, true, `missing release input ${path}`);
 });

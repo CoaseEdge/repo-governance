@@ -124,6 +124,11 @@
       "id": "rg007-architecture-governance-foundation",
       "description": "Deterministic architecture contracts, static dependency graphs, and RG007 enforcement",
       "passes": true
+    },
+    {
+      "id": "architecture-drift-detection",
+      "description": "Deterministic architecture baselines, drift metrics, health scoring, and check integration",
+      "passes": true
     }
   ]
 }

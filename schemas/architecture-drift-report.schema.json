@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CoaseEdge/repo-governance/schemas/architecture-drift-report.schema.json",
+  "title": "repo-governance architecture drift report",
+  "type": "object",
+  "required": ["schemaVersion", "status", "baselinePath", "contractSha256", "graphs", "health", "metrics", "changes", "penalties", "recommendations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["skipped", "evaluated"] },
+    "reason": { "type": "string" },
+    "baselinePath": { "const": ".repo-governance/architecture-baseline.json" },
+    "contractSha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "graphs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baselineSha256", "currentSha256"],
+      "properties": {
+        "baselineSha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "currentSha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["before", "after", "classification", "blockingThreshold"],
+      "properties": {
+        "before": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "after": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "classification": { "enum": [null, "Healthy", "Minor drift", "Needs attention", "Architecture degradation"] },
+        "blockingThreshold": { "const": 70 }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "current", "delta"],
+      "properties": {
+        "baseline": { "type": ["object", "null"] },
+        "current": { "type": ["object", "null"] },
+        "delta": { "type": ["object", "null"] }
+      }
+    },
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layerDependencies", "moduleDependencies", "moduleImports", "cycles", "boundaryViolations"],
+      "properties": {
+        "layerDependencies": { "$ref": "#/$defs/changeSet" },
+        "moduleDependencies": { "$ref": "#/$defs/changeSet" },
+        "moduleImports": { "$ref": "#/$defs/changeSet" },
+        "cycles": { "$ref": "#/$defs/changeSet" },
+        "boundaryViolations": { "$ref": "#/$defs/changeSet" }
+      }
+    },
+    "penalties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["boundary", "cycles", "dependencies", "coupling", "total"],
+      "properties": {
+        "boundary": { "type": "integer", "minimum": 0, "maximum": 40 },
+        "cycles": { "type": "integer", "minimum": 0, "maximum": 25 },
+        "dependencies": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "coupling": { "type": "integer", "minimum": 0, "maximum": 15 },
+        "total": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": { "code": { "type": "string" }, "message": { "type": "string" } }
+      }
+    },
+    "command": { "const": "architecture drift" },
+    "ok": { "type": "boolean" },
+    "exitCode": { "enum": [0, 1] },
+    "findings": { "type": "array" },
+    "message": { "type": "string" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "changeSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed"],
+      "properties": { "added": { "type": "array" }, "removed": { "type": "array" } }
+    }
+  }
+}
