@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { GovernanceError } from "./errors.mjs";
+import { verifyManagedLauncher } from "./launcher-install.mjs";
 import { governanceDataRoot } from "./paths.mjs";
 import { runGit } from "./process.mjs";
 import { PRE_PUSH_PROTOCOL_VERSION } from "./protocol.mjs";
@@ -281,7 +282,28 @@ export function connectEffectiveRepositoryHook(repo, { env = process.env, requir
   if (requireDispatcher && !existsSync(dispatcher)) throw new GovernanceError("Stable dispatcher is missing; install a verified repo-governance release before bootstrap.", { code: "RG_HOOKS_DISPATCHER", details: { dispatcher } });
   if (target.existed && target.contents.toString("utf8") === wrapperContents(dataRoot)) {
     const inspected = inspectEffectiveRepositoryHook(repo, { env });
-    if (!inspected.connected) throw new GovernanceError("Existing governance wrapper failed manifest verification.", { code: "RG_HOOKS_CONFLICT", details: { path: target.path, issues: inspected.issues } });
+    if (!inspected.connected) {
+      const dispatcherDigestOnly = inspected.issues.length === 1
+        && inspected.issues[0] === "Stable dispatcher digest differs from the wrapper manifest.";
+      if (!dispatcherDigestOnly || !verifyManagedLauncher({ env })) {
+        throw new GovernanceError("Existing governance wrapper failed manifest verification.", { code: "RG_HOOKS_CONFLICT", details: { path: target.path, issues: inspected.issues } });
+      }
+      const companions = companionPaths(target.path);
+      const previousManifest = target.companions.manifest.contents;
+      const previousMode = target.companions.manifest.modeBits;
+      try {
+        const manifest = repositoryHookManifest(target.path, dataRoot, inspected.sidecar);
+        atomicWrite(companions.manifest, `${JSON.stringify(manifest, null, 2)}\n`, 0o600);
+        const refreshed = inspectEffectiveRepositoryHook(repo, { env });
+        if (!refreshed.connected) {
+          throw new GovernanceError("Refreshed governance wrapper failed manifest verification.", { code: "RG_HOOKS_CONFLICT", details: { path: target.path, issues: refreshed.issues } });
+        }
+        return { mode: target.mode, changed: true, refreshed: true, path: target.path, sidecar: refreshed.sidecar };
+      } catch (error) {
+        atomicWrite(companions.manifest, previousManifest, previousMode);
+        throw error;
+      }
+    }
     return { mode: target.mode, changed: false, path: target.path, sidecar: inspected.sidecar };
   }
   mkdirSync(dirname(target.path), { recursive: true });
