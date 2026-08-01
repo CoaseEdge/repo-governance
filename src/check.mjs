@@ -12,6 +12,7 @@ import { evaluateArchitectureDrift } from "./architecture/drift.mjs";
 import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
 import { evaluateRg008 } from "./rg008.mjs";
 import { loadTaskContract } from "./task-contract.mjs";
+import { evaluateTaskDrift } from "./task-drift.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -35,6 +36,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const architectureDrift = evaluateArchitectureDrift(repo, architectureContract, rg007.architectureGraph, changed);
   const taskContract = mode === "standard" ? loadTaskContract(repo) : null;
   const rg008 = evaluateRg008(repo, taskContract, changed);
+  const taskDrift = evaluateTaskDrift(taskContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
   const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings];
   const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
@@ -56,6 +58,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     architectureDriftFindings: architectureDrift.findings,
     architectureDrift: architectureDrift.architectureDrift,
     scopeFindings: rg008.findings,
+    taskDrift,
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",

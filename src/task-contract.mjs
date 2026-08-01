@@ -70,6 +70,40 @@ export function validateTaskContract(input) {
     { pattern: /^[a-z][a-z0-9-]*$/ },
   );
 
+  const driftInput = input.drift === undefined ? {} : input.drift;
+  validateObjectKeys(driftInput, {
+    required: [],
+    allowed: Object.keys(taskContractSchema.properties.drift.properties),
+  }, "Task contract drift");
+  const subsystemInputs = driftInput.subsystems === undefined ? [] : driftInput.subsystems;
+  expect(Array.isArray(subsystemInputs), "drift.subsystems must be an array.");
+  const subsystemIds = new Set();
+  const subsystemPatterns = new Set();
+  const subsystems = subsystemInputs.map((subsystem, index) => {
+    validateObjectKeys(subsystem, {
+      required: taskContractSchema.$defs.subsystem.required,
+      allowed: Object.keys(taskContractSchema.$defs.subsystem.properties),
+    }, `drift.subsystems[${index}]`);
+    expect(
+      typeof subsystem.id === "string" && /^[a-z][a-z0-9-]*$/.test(subsystem.id),
+      `drift.subsystems[${index}].id must be a stable lowercase identifier.`,
+      { id: subsystem.id },
+    );
+    expect(!subsystemIds.has(subsystem.id), `drift.subsystems contains duplicate id ${subsystem.id}.`, { id: subsystem.id });
+    subsystemIds.add(subsystem.id);
+    const paths = stringArray(subsystem.paths, `drift.subsystems[${index}].paths`, { nonEmpty: true });
+    for (const pattern of paths) {
+      safePathPattern(pattern, `drift.subsystems[${index}].paths`);
+      expect(!subsystemPatterns.has(pattern), `drift.subsystems contains duplicate path pattern ${pattern}.`, { pattern });
+      subsystemPatterns.add(pattern);
+    }
+    return { id: subsystem.id, paths };
+  }).sort((left, right) => compare(left.id, right.id));
+  const sharedPaths = stringArray(driftInput.sharedPaths === undefined ? [] : driftInput.sharedPaths, "drift.sharedPaths");
+  const ciReleasePaths = stringArray(driftInput.ciReleasePaths === undefined ? [] : driftInput.ciReleasePaths, "drift.ciReleasePaths");
+  for (const pattern of sharedPaths) safePathPattern(pattern, "drift.sharedPaths");
+  for (const pattern of ciReleasePaths) safePathPattern(pattern, "drift.ciReleasePaths");
+
   validateObjectKeys(input.budget, {
     required: taskContractSchema.properties.budget.required,
     allowed: Object.keys(taskContractSchema.properties.budget.properties),
@@ -95,6 +129,7 @@ export function validateTaskContract(input) {
     forbiddenPaths,
     migrationPaths,
     allowedChangeCategories,
+    drift: { subsystems, sharedPaths, ciReleasePaths },
     budget,
   };
 }
