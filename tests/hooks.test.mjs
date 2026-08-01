@@ -10,6 +10,7 @@ import {
   installFutureHooks,
   uninstallFutureHooks,
 } from "../src/hooks.mjs";
+import { installRuntimeEntries } from "../src/launcher-install.mjs";
 import { git, initGitRepo, temporaryDirectory, write } from "./helpers.mjs";
 
 function isolatedEnv() {
@@ -111,6 +112,41 @@ test("hook connection rejects a stale dispatcher marker without overwriting it",
   write(hookPath, stale, 0o755);
   assert.throws(() => connectEffectiveRepositoryHook(repo, { env }), /unrecognized governance marker/);
   assert.equal(readFileSync(hookPath, "utf8"), stale);
+});
+
+test("hook reconnect atomically refreshes only a verified managed launcher digest", () => {
+  const env = isolatedEnv();
+  const repo = initGitRepo();
+  const firstLauncher = join(env.HOME, "launcher-first");
+  const secondLauncher = join(env.HOME, "launcher-second");
+  write(firstLauncher, "#!/bin/sh\nexit 0\n", 0o755);
+  write(secondLauncher, "#!/bin/sh\nexit 1\n", 0o755);
+  installRuntimeEntries({ launcherSource: firstLauncher, engineVersion: "1.3.0", engineCommitSha: "a".repeat(40), env });
+  const connected = connectEffectiveRepositoryHook(repo, { env, requireDispatcher: true });
+  const manifestPath = `${connected.path}.repo-governance-manifest.json`;
+  const before = JSON.parse(readFileSync(manifestPath, "utf8"));
+
+  installRuntimeEntries({ launcherSource: secondLauncher, engineVersion: "1.4.0", engineCommitSha: "b".repeat(40), env });
+  assert.match(doctorHooks(repo, { env, strict: true }).issues.join("\n"), /dispatcher digest differs/);
+  const refreshed = connectEffectiveRepositoryHook(repo, { env, requireDispatcher: true });
+  const after = JSON.parse(readFileSync(manifestPath, "utf8"));
+  assert.equal(refreshed.changed, true);
+  assert.equal(refreshed.refreshed, true);
+  assert.notEqual(after.dispatcher.sha256, before.dispatcher.sha256);
+  assert.equal(doctorHooks(repo, { env, strict: true }).ok, true);
+});
+
+test("hook reconnect rejects dispatcher drift without a verified managed launcher", () => {
+  const env = isolatedEnv();
+  const repo = initGitRepo();
+  const installedDispatcher = join(env.XDG_DATA_HOME, "repo-governance", "dispatcher");
+  write(installedDispatcher, "#!/bin/sh\nexit 0\n", 0o755);
+  const connected = connectEffectiveRepositoryHook(repo, { env, requireDispatcher: true });
+  const manifestPath = `${connected.path}.repo-governance-manifest.json`;
+  const before = readFileSync(manifestPath, "utf8");
+  write(installedDispatcher, "#!/bin/sh\nexit 1\n", 0o755);
+  assert.throws(() => connectEffectiveRepositoryHook(repo, { env, requireDispatcher: true }), /failed manifest verification/);
+  assert.equal(readFileSync(manifestPath, "utf8"), before);
 });
 
 test("wrapper gives byte-identical stdin to the preserved sidecar and dispatcher, then disconnect restores exact bytes", () => {

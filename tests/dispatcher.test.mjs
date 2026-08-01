@@ -37,12 +37,19 @@ function pushedInput(fixture) {
 
 test("dispatcher locates the locked engine with an empty PATH", () => {
   const fixture = setup();
-  assert.equal(dispatch({
+  let selectedExecutable;
+  const result = dispatch({
     cwd: fixture.repo,
     env: fixture.env,
     argv: ["pre-push", "origin", "git@example/repo"],
     stdin: pushedInput(fixture),
-  }).exitCode, 0);
+    spawn(executable) {
+      selectedExecutable = executable;
+      return { status: 0, signal: null };
+    },
+  });
+  assert.deepEqual(result, { exitCode: 0, signal: null }, result.message);
+  assert.equal(selectedExecutable, fixture.executable);
 });
 
 test("dispatcher routes pre-push to isolated execution verification and preserves arguments, cwd, environment, and inherited stdio", () => {
