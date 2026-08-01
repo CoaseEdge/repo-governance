@@ -24,6 +24,12 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/pathPattern" }
     },
+    "migrationPaths": {
+      "type": "array",
+      "default": [],
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/pathPattern" }
+    },
     "allowedChangeCategories": {
       "type": "array",
       "default": [],
@@ -38,10 +44,37 @@
         "maxFiles": {
           "type": "integer",
           "minimum": 1
+        },
+        "maxDirectories": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxMigrations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxOutOfScopeFiles": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "budget": { "required": ["maxMigrations"] }
+        }
+      },
+      "then": {
+        "required": ["migrationPaths"],
+        "properties": {
+          "migrationPaths": { "minItems": 1 }
+        }
+      }
+    }
+  ],
   "$defs": {
     "taskId": {
       "type": "string",

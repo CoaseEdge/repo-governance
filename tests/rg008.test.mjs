@@ -41,7 +41,7 @@ test("forbidden paths take precedence over deterministic out-of-scope findings",
       type: "FORBIDDEN_PATH",
       path: "src/admin/auth.mjs",
       message: "File matches a forbidden task path.",
-      severity: "warning",
+      severity: "error",
       waivable: false,
     },
     {
@@ -57,7 +57,7 @@ test("forbidden paths take precedence over deterministic out-of-scope findings",
   assert.deepEqual(evaluateRg008("/repo", taskContract(), [...changed].reverse()).findings, expected);
 });
 
-test("file budgets count unique changes but exclude the task contract", () => {
+test("file budgets count unique changes, exclude the task contract, and block", () => {
   const result = evaluateRg008("/repo", taskContract({
     allowedPaths: ["src/**"],
     forbiddenPaths: [],
@@ -66,8 +66,9 @@ test("file budgets count unique changes but exclude the task contract", () => {
   assert.deepEqual(result.findings, [{
     rule: "RG008",
     type: "BUDGET_EXCEEDED",
+    budget: "maxFiles",
     message: "Task changed 3 files, limit is 2.",
-    severity: "warning",
+    severity: "error",
     waivable: false,
     actualFiles: 3,
     maxFiles: 2,
@@ -80,7 +81,7 @@ test("file budgets count unique changes but exclude the task contract", () => {
   assert.deepEqual(combined.findings.map((finding) => finding.type), ["OUT_OF_SCOPE_CHANGE", "BUDGET_EXCEEDED"]);
 });
 
-test("repository checks expose advisory scope findings while adoption skips them", () => {
+test("repository checks block forbidden paths while adoption skips scope findings", () => {
   const repo = initGitRepo();
   writeConfig(repo, baseConfig());
   writeContract(repo);
@@ -91,14 +92,49 @@ test("repository checks expose advisory scope findings while adoption skips them
   commitAll(repo, "forbidden change");
 
   const result = checkRepository(repo, { base });
-  assert.equal(result.ok, true);
-  assert.equal(result.exitCode, 0);
+  assert.equal(result.ok, false);
+  assert.equal(result.exitCode, 1);
   assert.equal(result.scopeFindings.length, 1);
   assert.equal(result.scopeFindings[0].type, "FORBIDDEN_PATH");
-  assert.equal(result.scopeFindings[0].severity, "warning");
+  assert.equal(result.scopeFindings[0].severity, "error");
   assert.ok(result.findings.includes(result.scopeFindings[0]));
 
   const adoption = checkAdoption(repo, { base });
   assert.deepEqual(adoption.scopeFindings, []);
   assert.equal(adoption.findings.some((finding) => finding.rule === "RG008"), false);
+});
+
+test("out-of-scope warnings remain advisory until their declared budget is exceeded", () => {
+  const allowed = evaluateRg008("/repo", taskContract({
+    budget: { maxFiles: 10, maxOutOfScopeFiles: 1 },
+  }), ["outside/one.mjs"]);
+  assert.deepEqual(allowed.findings.map((finding) => [finding.type, finding.severity]), [["OUT_OF_SCOPE_CHANGE", "warning"]]);
+
+  const blocked = evaluateRg008("/repo", taskContract({
+    budget: { maxFiles: 10, maxOutOfScopeFiles: 0 },
+  }), ["outside/one.mjs"]);
+  assert.deepEqual(blocked.findings.map((finding) => [finding.type, finding.severity]), [
+    ["OUT_OF_SCOPE_CHANGE", "warning"],
+    ["BUDGET_EXCEEDED", "error"],
+  ]);
+});
+
+test("repository checks block when the out-of-scope allowance is exceeded", () => {
+  const repo = initGitRepo();
+  writeConfig(repo, baseConfig());
+  writeContract(repo, taskContract({ budget: { maxFiles: 10, maxOutOfScopeFiles: 0 } }));
+  write(join(repo, "README.md"), "# Baseline\n");
+  const base = commitAll(repo, "task scope baseline");
+  git(repo, ["switch", "-c", "feature"]);
+  write(join(repo, "outside", "one.mjs"), "export const outside = true;\n");
+  commitAll(repo, "out-of-scope change");
+
+  const result = checkRepository(repo, { base });
+  assert.equal(result.ok, false);
+  assert.equal(result.exitCode, 1);
+  assert.deepEqual(result.scopeFindings.map((finding) => [finding.type, finding.severity]), [
+    ["OUT_OF_SCOPE_CHANGE", "warning"],
+    ["BUDGET_EXCEEDED", "error"],
+  ]);
+  assert.ok(result.scopeFindings.every((finding) => result.findings.includes(finding)));
 });

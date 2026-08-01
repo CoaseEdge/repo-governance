@@ -59,8 +59,10 @@ export function validateTaskContract(input) {
 
   const allowedPaths = stringArray(input.allowedPaths, "allowedPaths", { nonEmpty: true });
   const forbiddenPaths = stringArray(input.forbiddenPaths, "forbiddenPaths");
+  const migrationPaths = stringArray(input.migrationPaths === undefined ? [] : input.migrationPaths, "migrationPaths");
   for (const pattern of allowedPaths) safePathPattern(pattern, "allowedPaths");
   for (const pattern of forbiddenPaths) safePathPattern(pattern, "forbiddenPaths");
+  for (const pattern of migrationPaths) safePathPattern(pattern, "migrationPaths");
 
   const allowedChangeCategories = stringArray(
     input.allowedChangeCategories === undefined ? [] : input.allowedChangeCategories,
@@ -73,6 +75,17 @@ export function validateTaskContract(input) {
     allowed: Object.keys(taskContractSchema.properties.budget.properties),
   }, "Task contract budget");
   expect(Number.isInteger(input.budget.maxFiles) && input.budget.maxFiles >= 1, "budget.maxFiles must be a positive integer.");
+  for (const field of ["maxDirectories", "maxMigrations", "maxOutOfScopeFiles"]) {
+    if (input.budget[field] !== undefined) {
+      expect(Number.isInteger(input.budget[field]) && input.budget[field] >= 0, `budget.${field} must be a non-negative integer.`);
+    }
+  }
+  expect(input.budget.maxMigrations === undefined || migrationPaths.length > 0, "migrationPaths must not be empty when budget.maxMigrations is declared.");
+
+  const budget = { maxFiles: input.budget.maxFiles };
+  for (const field of ["maxDirectories", "maxMigrations", "maxOutOfScopeFiles"]) {
+    if (input.budget[field] !== undefined) budget[field] = input.budget[field];
+  }
 
   return {
     schemaVersion: 1,
@@ -80,8 +93,9 @@ export function validateTaskContract(input) {
     objective: input.objective.trim(),
     allowedPaths,
     forbiddenPaths,
+    migrationPaths,
     allowedChangeCategories,
-    budget: { maxFiles: input.budget.maxFiles },
+    budget,
   };
 }
 
