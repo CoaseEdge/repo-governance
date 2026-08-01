@@ -1,0 +1,4 @@
+interface:
+  display_name: "Change Scope Review"
+  short_description: "Review deterministic RG008 scope and drift reports"
+  default_prompt: "Use $change-scope-review to explain this repository's RG008 scope report and whether Agent work should pause."

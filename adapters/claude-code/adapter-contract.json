@@ -64,6 +64,13 @@
       "fixture": "architecture-review",
       "consumes": ["architectureFindings", "architectureGraph", "architectureDriftFindings", "architectureDrift"],
       "classificationLabels": ["error", "warning", "evaluated", "skipped"]
+    },
+    {
+      "id": "change-scope-review",
+      "commandTemplates": ["repo-governance check --json"],
+      "fixture": "change-scope-review",
+      "consumes": ["mode", "ok", "exitCode", "scopeFindings", "taskDrift"],
+      "classificationLabels": ["blocked", "needs-confirmation", "advisory", "no-scope-signal", "not-evaluated", "incompatible-input"]
     }
   ]
 }

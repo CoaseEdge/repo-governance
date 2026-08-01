@@ -12,6 +12,7 @@ const playbooks = fileURLToPath(new URL("../playbooks", import.meta.url));
 const expected = [
   "architecture-review",
   "bootstrap-repo-governance",
+  "change-scope-review",
   "classify-test-tier",
   "plan-change-test-impact",
   "protect-public-commands",
@@ -68,6 +69,24 @@ test("architecture review explains one deterministic report without implementing
   assert.match(playbook, /skipped[\s\S]+never means the architecture is healthy/);
   assert.match(playbook, /suggestion for review, not a new finding/);
   assert.doesNotMatch(skill, /blockingThreshold|allowedDependencies|forbiddenDependencies|createHash/);
+});
+
+test("change scope review preserves RG008 evidence and pauses at the declared boundaries", () => {
+  const skill = readFileSync(join(root, "change-scope-review", "SKILL.md"), "utf8");
+  const playbook = readFileSync(join(playbooks, "change-scope-review.md"), "utf8");
+  assert.match(skill, /repo-governance check --json/);
+  for (const field of ["mode", "ok", "exitCode", "scopeFindings", "taskDrift"]) {
+    assert.match(skill, new RegExp(`\\b${field}\\b`));
+    assert.match(playbook, new RegExp(`\\b${field}\\b`));
+  }
+  for (const classification of ["blocked", "needs-confirmation", "advisory", "no-scope-signal", "not-evaluated", "incompatible-input"]) {
+    assert.match(playbook, new RegExp(`\\b${classification}\\b`));
+  }
+  const precedence = ["incompatible-input", "not-evaluated", "blocked", "needs-confirmation", "advisory", "no-scope-signal"];
+  assert.deepEqual(precedence.map((classification) => playbook.indexOf(`\`${classification}\``)), precedence.map((classification) => playbook.indexOf(`\`${classification}\``)).toSorted((a, b) => a - b));
+  assert.match(playbook, /Pause repository modifications and ask the user/);
+  assert.match(playbook, /does not prove that a Task Contract exists/);
+  assert.doesNotMatch(`${skill}\n${playbook}`, /allowedPaths|forbiddenPaths|migrationPaths|globToRegExp/);
 });
 
 test("release staging materializes the canonical playbook as each Skill reference", () => {

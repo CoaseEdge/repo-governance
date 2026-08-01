@@ -138,7 +138,7 @@ V1 的命令图刻意只支持 `package.json` scripts、pnpm workspace/filter/ru
 
 ## 在 Codex 与 Claude Code 中使用
 
-Agent 无关的建议知识统一位于 `playbooks/`。七个精简 Codex wrapper 位于 `adapters/codex/skills/`；Claude Code 使用 `adapters/claude-code/` 下的 `CLAUDE.md` 和七个对应命令模板。两套适配声明相同的 CLI 命令、JSON 报告版本、Playbook ID、消费字段和建议标签。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则，也不自行读取用户策略。共享的 `architecture-review` 顾问只解释同一份 `check --json` 中的 RG007 与架构漂移字段，不重新计算判定或健康分。
+Agent 无关的建议知识统一位于 `playbooks/`。八个精简 Codex wrapper 位于 `adapters/codex/skills/`；Claude Code 使用 `adapters/claude-code/` 下的 `CLAUDE.md` 和八个对应命令模板。两套适配声明相同的 CLI 命令、JSON 报告版本、Playbook ID、消费字段和建议标签。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则，也不自行读取用户策略。共享的 `architecture-review` 顾问只解释同一份 `check --json` 中的 RG007 与架构漂移字段，不重新计算判定或健康分。`change-scope-review` 保留 RG008 范围与漂移证据，按报告严重级别停止或暂停 Agent 工作，不重新计算路径、预算或分数。
 
 CI 失败分类会先选择 `true-bug`、`stale-test`、`stale-workflow`、`wrong-ci-tier` 或 `insufficient-evidence`，然后才提出修复建议。这些是建议标签；CLI RG findings 始终是确定性事实。
 
@@ -154,7 +154,7 @@ Release 与源码安装会把规范 Playbook、两套 adapter 和可选 Hook 模
 
 ## 发布与安装
 
-发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS`、`release-index.json`、确定性 `release-catalog.json` 与 `release-catalog.sig`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、七个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `CoaseEdge/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。版本提醒 catalog 使用独立真实性边界：固定来源是 owner 转移后的规范仓库 `CoaseEdge/repo-governance`，且必须通过 executable 内单一 Ed25519 公钥验签。
+发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS`、`release-index.json`、确定性 `release-catalog.json` 与 `release-catalog.sig`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、八个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `CoaseEdge/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。版本提醒 catalog 使用独立真实性边界：固定来源是 owner 转移后的规范仓库 `CoaseEdge/repo-governance`，且必须通过 executable 内单一 Ed25519 公钥验签。
 
 在 macOS/Linux 上，engine、launcher、默认指针和兼容 dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。POSIX 使用临时文件与 atomic rename 更新 launcher 和指针；Windows 使用版本化 launcher 路径，绝不覆盖正在执行的二进制，入口验证切换后才生效，被锁定的旧文件留待后续 prune。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
 

@@ -174,5 +174,47 @@
         { "code": "review-layer-dependencies", "message": "Review newly introduced cross-layer dependency directions against the contract." }
       ]
     }
+  },
+  "change-scope-review": {
+    "schemaVersion": 1,
+    "mode": "standard",
+    "ok": false,
+    "exitCode": 1,
+    "scopeFindings": [
+      {
+        "rule": "RG008",
+        "type": "FORBIDDEN_PATH",
+        "path": "src/admin/auth.mjs",
+        "message": "Changed path is forbidden by the Task Contract: src/admin/auth.mjs",
+        "severity": "error",
+        "waivable": false
+      },
+      {
+        "rule": "RG008",
+        "type": "OUT_OF_SCOPE_CHANGE",
+        "path": "src/search/view.mjs",
+        "message": "Changed path is outside the Task Contract: src/search/view.mjs",
+        "severity": "warning",
+        "waivable": false
+      },
+      {
+        "rule": "RG008",
+        "type": "BUDGET_EXCEEDED",
+        "budget": "maxFiles",
+        "message": "Changed file count 4 exceeds Task Contract budget maxFiles 3.",
+        "severity": "error",
+        "waivable": false,
+        "actualFiles": 4,
+        "maxFiles": 3
+      }
+    ],
+    "taskDrift": {
+      "taskDriftScore": 35,
+      "severity": "high",
+      "reasons": [
+        "Touched new subsystem: admin.",
+        "Modified CI/release file: .github/workflows/release.yml."
+      ]
+    }
   }
 }
