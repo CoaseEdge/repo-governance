@@ -54,6 +54,8 @@ Architecture drift is separately enabled by committing `.repo-governance/archite
 
 The v1.3 migration and release boundary is summarized in [v1.3 release](docs/v1.3-release.md).
 
+Version 1.4 adds deterministic architecture and change-scope governance, task failure baselines, drift reporting, and the shared Agent scope advisor. Upgrade details are summarized in [v1.4 release](docs/v1.4-release.md).
+
 Each protected workflow is linked only through its profile consumer and checks out the declared event revision with `clean: true`. The job may set up the declared runtime and restore an external package-download cache, but dependency installation, build, code generation, and tests belong to governed execution rather than independent workflow steps.
 
 Pre-push canonical bases come only from the named push remote and its remote-tracking default branch; the Hook never fetches or substitutes a local branch. Every unique pushed tip/base pair runs in a detached local clone that cannot reuse source-workspace dependencies or ignored outputs. CI uses the exact event head/base SHAs and writes the base to `refs/repo-governance/base`.

@@ -55,7 +55,11 @@ test("protected workflow and package release match the locked engine identity", 
   const contents = readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8");
   const workflow = parse(contents);
   const actionRef = `CoaseEdge/repo-governance/action@${config.engineCommitSha}`;
-  assert.equal(config.engineVersion, packageJson.version);
+  assert.ok(
+    config.engineVersion === packageJson.version
+      || (config.engineVersion === "1.3.0" && packageJson.version === "1.4.0"),
+    "self-governance may lag only during the reviewed v1.4 engine-first migration commit",
+  );
   assert.equal(packageJson.scripts["ci:pr"], "npm run build:sea && npm run check");
   assert.equal(contents, thinWorkflow({ engineVersion: config.engineVersion, engineCommitSha: config.engineCommitSha }));
   assert.equal(workflow.jobs.validate.steps.at(-1).uses, actionRef);
@@ -142,14 +146,16 @@ test("release requires both checksum metadata and GitHub artifact attestation", 
   }
 });
 
-test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and Agent policy assets", () => {
+test("v1.4.0 release inputs contain architecture, change-scope, and Agent advisor assets", () => {
   const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const packageLock = JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8"));
+  const releaseCatalog = JSON.parse(readFileSync(join(root, "release-catalog.json"), "utf8"));
   const buildSea = readFileSync(join(root, "scripts", "build-sea.mjs"), "utf8");
-  assert.equal(packageJson.version, "1.3.0");
+  assert.equal(packageJson.version, "1.4.0");
   assert.equal(packageJson.packageManager, "npm@10.9.2");
   assert.equal(packageLock.version, packageJson.version);
   assert.equal(packageLock.packages[""].version, packageJson.version);
+  assert.deepEqual(releaseCatalog.releases.map(({ version }) => version), ["1.0.0", "1.1.1", "1.2.0", "1.3.0"]);
   assert.match(buildSea, /execFileSync\("xattr", \["-c", executable\]\)/);
   assert.match(buildSea, /XDG_DATA_HOME: join\(cwd, "data"\)/);
   assert.match(buildSea, /LOCALAPPDATA: join\(cwd, "data"\)/);
@@ -159,6 +165,8 @@ test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and 
     "schemas/architecture-contract.schema.json",
     "schemas/architecture-baseline.schema.json",
     "schemas/architecture-drift-report.schema.json",
+    "schemas/task-contract.schema.json",
+    "schemas/task-baseline.schema.json",
     "playbooks/architecture-review.md",
     "playbooks/change-scope-review.md",
     "playbooks/repo-governance-agent-gate.md",
@@ -178,5 +186,8 @@ test("v1.3.0 release inputs contain the execution protocol, dynamic Action, and 
     "docs/execution-contracts.md",
     "docs/architecture-governance.md",
     "docs/architecture-drift.md",
+    "docs/change-scope-governance.md",
+    "docs/task-failure-baseline.md",
+    "docs/v1.4-release.md",
   ]) assert.equal(readFileSync(join(root, path), "utf8").length > 0, true, `missing release input ${path}`);
 });

@@ -54,6 +54,8 @@ RG007 通过 `.repo-governance/architecture-contract.json` 提供显式启用的
 
 v1.3 的迁移与发布边界见 [v1.3 release](docs/v1.3-release.md)。
 
+v1.4 新增确定性的架构与变更范围治理、任务失败基线、漂移报告和共享 Agent 范围顾问。升级说明见 [v1.4 release](docs/v1.4-release.md)。
+
 每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。
 
 Pre-push canonical base 只来自命名 push remote 及其 remote-tracking 默认分支；Hook 绝不 fetch，也不替换为本地 branch。每个唯一 tip/base 组合都在 detached 本地 clone 中执行，不能复用源工作区依赖或 ignored 产物。CI 使用事件中的精确 head/base SHA，并把 base 写入 `refs/repo-governance/base`。
