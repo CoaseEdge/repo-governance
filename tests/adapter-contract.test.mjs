@@ -71,6 +71,27 @@ test("architecture advisors consume the same RG007 and drift report fields", () 
   assert.equal(fixture.architectureDrift.health.after, 86);
 });
 
+test("change scope advisors consume the same RG008 and task drift report fields", () => {
+  const expectedFields = ["mode", "ok", "exitCode", "scopeFindings", "taskDrift"];
+  const expectedLabels = ["blocked", "needs-confirmation", "advisory", "no-scope-signal", "not-evaluated", "incompatible-input"];
+  for (const adapterRoot of [codexRoot, claudeRoot]) {
+    const playbook = contract(adapterRoot).playbooks.find(({ id }) => id === "change-scope-review");
+    assert.deepEqual(playbook.commandTemplates, ["repo-governance check --json"]);
+    assert.equal(playbook.fixture, "change-scope-review");
+    assert.deepEqual(playbook.consumes, expectedFields);
+    assert.deepEqual(playbook.classificationLabels, expectedLabels);
+  }
+  const fixture = fixtures["change-scope-review"];
+  assert.equal(fixture.schemaVersion, 1);
+  assert.deepEqual(fixture.scopeFindings.map(({ type }) => type), ["FORBIDDEN_PATH", "OUT_OF_SCOPE_CHANGE", "BUDGET_EXCEEDED"]);
+  assert.deepEqual(fixture.scopeFindings.map(({ severity }) => severity), ["error", "warning", "error"]);
+  assert.equal(fixture.scopeFindings[2].actualFiles, 4);
+  assert.equal(fixture.scopeFindings[2].maxFiles, 3);
+  assert.equal(fixture.taskDrift.taskDriftScore, 35);
+  assert.equal(fixture.taskDrift.severity, "high");
+  assert.equal(fixture.taskDrift.reasons.length, 2);
+});
+
 test("Claude prompt templates map one-to-one to canonical Playbooks and contract IDs", () => {
   const claude = contract(claudeRoot);
   for (const playbook of claude.playbooks) {
@@ -93,5 +114,7 @@ test("Agent wrappers contain no known governance rule implementation primitives"
   const combined = files.map((path) => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(combined, /definitionHash|businessPaths|highImpactMappings|workflowAllowedEntries|createHash|globToRegExp/);
   assert.doesNotMatch(combined, /blockingThreshold|allowedDependencies|forbiddenDependencies|stronglyConnectedComponents/);
+  assert.doesNotMatch(combined, /allowedPaths|forbiddenPaths|migrationPaths/);
+  assert.doesNotMatch(combined, /taskDriftScore\s*[+*\/-]/);
   assert.match(combined, /semanticCoverageVerified: false/);
 });

@@ -84,6 +84,14 @@ Evidence is unique and rules are additive, so one path may contribute to more th
 
 Task drift is advisory only. It does not emit a finding, change `ok` or `exitCode`, or weaken blocking forbidden-path and budget findings.
 
+## Agent scope review
+
+The shared `change-scope-review` Playbook and its thin Codex and Claude Code adapters explain the deterministic `check --json` report. They consume only `mode`, `ok`, `exitCode`, `scopeFindings`, and `taskDrift`, preserving reported finding types, paths, budget evidence, severity, messages, waiver status, score, severity, and reasons.
+
+The adapters apply a fixed precedence: incompatible input, non-standard mode, blocking RG008 errors, warnings or medium/high drift that require user confirmation, low-drift advisory, then a neutral no-scope-signal result. A neutral result does not prove that a Task Contract exists or that the task is in scope. Overall `ok` and `exitCode` are shown separately because other governance rules can determine them.
+
+The Agent stops before repository changes for blocking or incompatible reports and pauses for user confirmation when scope warnings or medium/high drift are reported. It never reads the Task Contract directly, recalculates paths, budgets, or drift, creates a waiver, expands the task, or modifies files on the report's authority alone.
+
 ## Enforcement boundary
 
-`FORBIDDEN_PATH` and `BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent integration belongs to a later RG008 change.
+`FORBIDDEN_PATH` and `BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent adapters only explain this deterministic output and cannot override the enforcement boundary.
