@@ -10,6 +10,8 @@ import { evaluateRg007 } from "./rg007.mjs";
 import { readArchitectureContract } from "./architecture/contract.mjs";
 import { evaluateArchitectureDrift } from "./architecture/drift.mjs";
 import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
+import { evaluateRg008 } from "./rg008.mjs";
+import { loadTaskContract } from "./task-contract.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -31,8 +33,10 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const architectureContract = readArchitectureContract(repo, { changedPaths: changed });
   const rg007 = evaluateRg007(repo, architectureContract, changed);
   const architectureDrift = evaluateArchitectureDrift(repo, architectureContract, rg007.architectureGraph, changed);
+  const taskContract = mode === "standard" ? loadTaskContract(repo) : null;
+  const rg008 = evaluateRg008(repo, taskContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings];
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings];
   const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
   return {
     schemaVersion: 1,
@@ -51,6 +55,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     architectureGraph: rg007.architectureGraph,
     architectureDriftFindings: architectureDrift.findings,
     architectureDrift: architectureDrift.architectureDrift,
+    scopeFindings: rg008.findings,
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",
