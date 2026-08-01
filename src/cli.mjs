@@ -1,4 +1,4 @@
-import { relative } from "node:path";
+import { relative, resolve } from "node:path";
 import { asFailure, GovernanceError } from "./errors.mjs";
 import { repositoryRoot, resolveCanonicalBase } from "./git.mjs";
 import { checkRepository } from "./check.mjs";
@@ -25,6 +25,7 @@ import { verifyCiExecution } from "./verify-execution.mjs";
 import { readPrePushStdin, verifyPrePushExecution } from "./pre-push.mjs";
 import { createArchitectureBaseline } from "./architecture/baseline.mjs";
 import { reportArchitectureDrift } from "./architecture/drift.mjs";
+import { compareTaskBaseline, createTaskBaseline, loadTestResults } from "./test-baseline/index.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -60,6 +61,8 @@ function help() {
   check [--base <ref>] [--head <ref>] [--json]
   architecture baseline [--replace] [--json]
   architecture drift [--json]
+  baseline create --results <json> --created-at <ISO> [--replace] [--json]
+  baseline compare --results <json> [--json]
   verify-execution --profile <id> --ci --event-file <json> [--json]
   verify-execution --pre-push --remote <name> --remote-url <url> [--json]
   waiver create --name <name> --paths <a,b> --reason <text> --expires <ISO> [--base <ref>]
@@ -254,6 +257,30 @@ export async function main(argv, context = {}) {
       if (invalidArguments) throw new GovernanceError("architecture drift accepts only the optional --json flag.", { code: "RG_INVOCATION" });
       const result = (context.reportArchitectureDrift || reportArchitectureDrift)(repo);
       emit(result, json, result.ok ? stdout : stderr);
+      return result.exitCode;
+    }
+    if (command === "baseline" && subcommand === "create") {
+      const invalidArguments = parsed.positional.length !== 2
+        || typeof parsed.flags.results !== "string"
+        || typeof parsed.flags["created-at"] !== "string"
+        || Object.keys(parsed.flags).some((flag) => !["results", "created-at", "replace", "json"].includes(flag));
+      if (invalidArguments) throw new GovernanceError("baseline create requires --results <json> and --created-at <ISO>, and accepts only --replace and --json.", { code: "RG_INVOCATION" });
+      const results = (context.loadTestResults || loadTestResults)(resolve(repo, String(parsed.flags.results)));
+      const result = (context.createTaskBaseline || createTaskBaseline)(repo, results, {
+        createdAt: String(parsed.flags["created-at"]),
+        replace: Boolean(parsed.flags.replace),
+      });
+      emit(result, json, stdout);
+      return result.exitCode;
+    }
+    if (command === "baseline" && subcommand === "compare") {
+      const invalidArguments = parsed.positional.length !== 2
+        || typeof parsed.flags.results !== "string"
+        || Object.keys(parsed.flags).some((flag) => !["results", "json"].includes(flag));
+      if (invalidArguments) throw new GovernanceError("baseline compare requires --results <json> and accepts only --json.", { code: "RG_INVOCATION" });
+      const results = (context.loadTestResults || loadTestResults)(resolve(repo, String(parsed.flags.results)));
+      const result = (context.compareTaskBaseline || compareTaskBaseline)(repo, results);
+      emit(result, json, stdout);
       return result.exitCode;
     }
     if (command === "verify-execution") {
