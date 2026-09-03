@@ -73,7 +73,7 @@ Version 2 adds an explicit engineering profile and deterministic engineering bud
 }
 ```
 
-`engineeringProfile` is required in version 2 and must be `small`, `standard`, `high`, or `critical`. The four additional budgets are optional non-negative integers. At this stage they are parsed and normalized contract data only: they do not change RG008 or any other governance rule. Version 1 contracts are read as version 1 and are never migrated automatically.
+`engineeringProfile` is required in version 2 and must be `small`, `standard`, `high`, or `critical`. The four additional budgets are optional non-negative integers and are enforced by RG009. The profile is normalized contract data only and does not yet change governance behavior. Version 1 contracts are read as version 1 and are never migrated automatically.
 
 `taskId` is a stable identifier and `objective` is the human-authored result the task should achieve. Path patterns are repository-relative POSIX globs. `allowedPaths` must contain at least one pattern; `forbiddenPaths` and `migrationPaths` may be empty. `allowedChangeCategories` is optional and defaults to an empty array. Category names are repository-declared lowercase identifiers: the engine does not assign built-in meaning to them.
 
@@ -101,6 +101,14 @@ RG008 reports three finding types:
 
 Forbidden paths take precedence, so one changed file produces at most one path finding. `.repo-governance/task-contract.json` is governance metadata and is excluded from path findings and every budget. Path findings use stable repository-path order, followed by budget findings in contract-field order. Adoption checks skip task scope analysis because a repository snapshot is not an individual task diff.
 
+## Change metrics and RG009
+
+For a version 2 task contract, the engine derives deterministic facts from the canonical Git diff: changed files, new files, direct parent directories, added lines, deleted lines, test files, test added lines, migration files, and out-of-scope files. RG009 recognizes only exact, content-preserving renames so they do not consume new-file or line-addition budget; modified moves remain ordinary delete-and-add facts. RG008 keeps its existing changed-path semantics. Binary diff markers do not represent lines and contribute zero added or deleted lines.
+
+Test files are matched only against the repository's existing `testCategories` and `testSupport` patterns. Migration and out-of-scope counts reuse the Task Contract's explicit path declarations. The engine does not inspect code semantics or infer file roles from names.
+
+RG009 compares `newFiles`, `addedLines`, `testFiles`, and `testAddedLines` with `maxNewFiles`, `maxAddedLines`, `maxTestFiles`, and `maxTestAddedLines`. Each exceeded limit emits a non-waivable `COMPLEXITY_BUDGET_EXCEEDED` error with the budget name, actual value, and limit. Version 1 contracts do not evaluate RG009. RG008 remains responsible only for task location and its existing scope budgets.
+
 ## Task drift score
 
 Standard checks also expose a `taskDrift` object with `taskDriftScore`, `severity`, and deterministic `reasons`. The score starts at zero and adds:
@@ -125,4 +133,4 @@ The Agent stops before repository changes for blocking or incompatible reports a
 
 ## Enforcement boundary
 
-`FORBIDDEN_PATH` and `BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent adapters only explain this deterministic output and cannot override the enforcement boundary.
+`FORBIDDEN_PATH`, `BUDGET_EXCEEDED`, and `COMPLEXITY_BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent adapters only explain this deterministic output and cannot override the enforcement boundary.
