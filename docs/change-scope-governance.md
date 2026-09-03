@@ -4,7 +4,7 @@ AI coding agents can continue making locally reasonable changes after a task has
 
 ## Task contract
 
-Place the optional task contract at `.repo-governance/task-contract.json`:
+Place the optional task contract at `.repo-governance/task-contract.json`. Existing version 1 contracts remain supported:
 
 ```json
 {
@@ -44,13 +44,44 @@ Place the optional task contract at `.repo-governance/task-contract.json`:
 }
 ```
 
+Version 2 adds an explicit engineering profile and deterministic engineering budgets:
+
+```json
+{
+  "schemaVersion": 2,
+  "taskId": "fix-login-button",
+  "objective": "Fix login button alignment",
+  "engineeringProfile": "small",
+  "allowedPaths": [
+    "src/login/**",
+    "tests/login/**"
+  ],
+  "forbiddenPaths": [],
+  "allowedChangeCategories": [
+    "source",
+    "tests"
+  ],
+  "budget": {
+    "maxFiles": 4,
+    "maxDirectories": 2,
+    "maxOutOfScopeFiles": 0,
+    "maxNewFiles": 1,
+    "maxAddedLines": 200,
+    "maxTestFiles": 1,
+    "maxTestAddedLines": 120
+  }
+}
+```
+
+`engineeringProfile` is required in version 2 and must be `small`, `standard`, `high`, or `critical`. The four additional budgets are optional non-negative integers. At this stage they are parsed and normalized contract data only: they do not change RG008 or any other governance rule. Version 1 contracts are read as version 1 and are never migrated automatically.
+
 `taskId` is a stable identifier and `objective` is the human-authored result the task should achieve. Path patterns are repository-relative POSIX globs. `allowedPaths` must contain at least one pattern; `forbiddenPaths` and `migrationPaths` may be empty. `allowedChangeCategories` is optional and defaults to an empty array. Category names are repository-declared lowercase identifiers: the engine does not assign built-in meaning to them.
 
 The optional `drift` object declares how the repository recognizes subsystem, shared-module, and CI/release changes. Subsystems have stable lowercase IDs and one or more explicit path patterns. Missing declarations normalize to empty arrays. The engine does not infer these categories from directory names, framework conventions, or an LLM.
 
 `maxFiles` remains required and positive. `maxDirectories`, `maxMigrations`, and `maxOutOfScopeFiles` are optional non-negative limits, so existing version 1 contracts remain valid. When `maxMigrations` is declared, `migrationPaths` must explicitly identify migration files; the engine never guesses from framework conventions. Direct parent directories are counted once, with repository-root files assigned to `.`. Forbidden files are counted separately and do not consume the out-of-scope allowance.
 
-The loader is deterministic and offline. It reads the fixed path, rejects unknown fields, unsafe paths, duplicates, invalid identifiers, and unsupported schema versions, and returns arrays in a stable order. A missing contract returns `null`, allowing repositories and tasks that have not adopted change scope governance to remain compatible.
+The loader is deterministic and offline. It reads the fixed path, rejects version-specific unknown fields, unsafe paths, duplicates, invalid identifiers, and unsupported schema versions, and returns arrays in a stable order. A missing contract returns `null`, allowing repositories and tasks that have not adopted change scope governance to remain compatible.
 
 ## Task contract versus architecture contract
 
