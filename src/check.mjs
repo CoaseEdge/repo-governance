@@ -15,7 +15,7 @@ import { loadTaskContract } from "./task-contract.mjs";
 import { evaluateTaskDrift } from "./task-drift.mjs";
 import { collectChangeMetrics } from "./change-metrics.mjs";
 import { evaluateRg009 } from "./rg009.mjs";
-import { resolveEngineeringProfile } from "./engineering-profile.mjs";
+import { resolveEngineeringProfile, resolveVerificationAdvice } from "./engineering-profile.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -48,6 +48,16 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
   const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings, ...rg009.findings];
   const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
+  const needsConfirmation = rg008.findings.some((finding) => finding.severity === "warning")
+    || ["medium", "high"].includes(taskDrift.severity);
+  const governanceDecision = blockingFindings.length > 0
+    ? "blocked"
+    : needsConfirmation ? "needs-confirmation" : "satisfied";
+  const stopActions = {
+    blocked: "resolve-governance-findings",
+    "needs-confirmation": "confirm-scope",
+    satisfied: "stop-if-objective-satisfied",
+  };
   return {
     schemaVersion: 1,
     mode,
@@ -68,6 +78,9 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     scopeFindings: rg008.findings,
     taskDrift,
     ...(engineeringProfile ? { engineeringProfile } : {}),
+    verificationAdvice: resolveVerificationAdvice(engineeringProfile, config),
+    governanceDecision,
+    stopAdvice: { action: stopActions[governanceDecision] },
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",

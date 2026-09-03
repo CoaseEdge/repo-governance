@@ -49,6 +49,8 @@ function markdown(report) {
 }
 
 export function projectAgentReport(checkResult, { repoPath, baseRef } = {}) {
+  const governanceDecision = checkResult.governanceDecision || (checkResult.ok ? "satisfied" : "blocked");
+  const ready = governanceDecision === "satisfied";
   const ruleFindings = Object.fromEntries(RULES.map((rule) => {
     const findings = findingsFor(checkResult, rule);
     const value = { status: ruleStatus(checkResult, rule, findings), findings };
@@ -60,11 +62,11 @@ export function projectAgentReport(checkResult, { repoPath, baseRef } = {}) {
     schemaVersion: 1,
     command: "prepare-pr",
     ok: checkResult.ok,
-    status: checkResult.ok ? "succeeded" : "needs_attention",
+    status: ready ? "succeeded" : "needs_attention",
     exitCode: checkResult.exitCode,
     repoPath,
     summary: {
-      status: checkResult.ok ? "ready" : "findings",
+      status: ready ? "ready" : governanceDecision,
       base: baseRef,
       head: checkResult.endpoints?.headSha,
       changedPathCount: (checkResult.changedPaths || []).length,
@@ -75,8 +77,15 @@ export function projectAgentReport(checkResult, { repoPath, baseRef } = {}) {
     requiredTests: requiredTests(checkResult),
     workflowFindings: findingsFor(checkResult, "RG003"),
     commandContractFindings: findingsFor(checkResult, "RG004"),
+    verificationAdvice: checkResult.verificationAdvice,
+    governanceDecision,
+    stopAdvice: checkResult.stopAdvice,
     sourceCheckResult: checkResult,
-    nextActions: checkResult.ok ? [] : [{ id: "resolve-governance-findings", severity: "error", message: "Resolve the structured governance findings before opening the pull request.", command: `repo-governance check --base ${baseRef} --head HEAD --json` }],
+    nextActions: ready
+      ? []
+      : governanceDecision === "needs-confirmation"
+        ? [{ id: "confirm-scope", severity: "warning", message: "Confirm the reported scope expansion before opening the pull request." }]
+        : [{ id: "resolve-governance-findings", severity: "error", message: "Resolve the structured governance findings before opening the pull request.", command: `repo-governance check --base ${baseRef} --head HEAD --json` }],
   };
   report.suggestedPRBody = markdown(report);
   report.message = checkResult.ok ? "PR preparation completed without deterministic governance findings." : "PR preparation found governance issues.";
@@ -104,6 +113,9 @@ export function projectCheckFailure(error, { repoPath, baseRef }) {
     requiredTests: [],
     workflowFindings: [],
     commandContractFindings: [],
+    verificationAdvice: null,
+    governanceDecision: "blocked",
+    stopAdvice: { action: "resolve-governance-findings" },
     suggestedPRBody: "",
     sourceCheckResult,
     nextActions: [{ id: "repair-git-history", severity: "error", message: "Fetch or repair the canonical target history, then rerun prepare-pr." }],
