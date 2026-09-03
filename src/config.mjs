@@ -152,11 +152,23 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
   for (const [category, patterns] of Object.entries(config.testCategories)) {
     expect(Array.isArray(patterns) && patterns.every((item) => typeof item === "string" && item.length > 0), `Invalid paths for test category ${category}.`);
   }
+  for (const entry of config.testEntries || []) {
+    if (entry.categories !== undefined) {
+      expect(
+        Array.isArray(entry.categories)
+          && entry.categories.length > 0
+          && entry.categories.every((category) => Object.hasOwn(config.testCategories, category))
+          && new Set(entry.categories).size === entry.categories.length,
+        `Test entry ${entry.id} has invalid evidence categories.`,
+      );
+    }
+  }
   for (const mapping of config.highImpactMappings) {
     expect(Array.isArray(mapping.businessPaths) && mapping.businessPaths.length > 0, "Each high-impact mapping needs businessPaths.");
     expect(Array.isArray(mapping.requirements) && mapping.requirements.length > 0, "Each high-impact mapping needs requirements.");
     for (const requirement of mapping.requirements) {
       expect(Array.isArray(requirement.anyOf) && requirement.anyOf.length > 0, "Each mapping requirement needs an anyOf category list.");
+      expect(requirement.evidenceMode === undefined || ["change", "execution", "either"].includes(requirement.evidenceMode), "Each mapping requirement has an invalid evidenceMode.");
       for (const category of requirement.anyOf) {
         expect(Object.hasOwn(config.testCategories, category), `Unknown test category in high-impact mapping: ${category}.`);
       }

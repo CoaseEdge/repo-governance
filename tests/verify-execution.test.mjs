@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { dependencyPreparationDefinitionHash } from "../src/execution-contract.mjs";
+import { testEvidencePath } from "../src/execution-evidence.mjs";
+import { commandDefinitionHash } from "../src/rg004.mjs";
 import { verifyCiExecution, verifyRuntime } from "../src/verify-execution.mjs";
 import { baseConfig, commitAll, git, initGitRepo, temporaryDirectory, write, writeConfig } from "./helpers.mjs";
 
@@ -49,6 +51,63 @@ test("CI verification binds the event revision, static check, profile, and clean
   assert.equal(report.workflowConsumersVerified, true);
   assert.equal(report.cleanCheckoutVerified, true);
   assert.equal(report.semanticCoverageVerified, false);
+});
+
+test("fresh CI checkout satisfies execution-mode RG001 with same-session evidence", () => {
+  const source = initGitRepo();
+  const definition = "node --test tests/unit/value.test.mjs";
+  const config = baseConfig({
+    highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit"], evidenceMode: "execution" }] }],
+    testEntries: [{
+      id: "unit-suite",
+      type: "command",
+      command: definition,
+      node: "package.json#test:unit",
+      categories: ["unit"],
+    }],
+    testTiers: { "pr-blocking": ["unit-suite"], nightly: [], "manual-smoke": [] },
+    prBlockingCommands: ["package.json#test:unit"],
+    publicCommands: [{
+      id: "unit-test",
+      manifest: "package.json",
+      command: "test:unit",
+      definitionHash: commandDefinitionHash(definition),
+      semantics: "Run the unit suite.",
+      tier: "pr-blocking",
+      consumers: { contractTests: ["tests/**"], docs: ["README.md"], workflows: [".github/workflows/**"] },
+    }],
+  });
+  config.executionProfiles[0].entry = { publicCommand: "unit-test", argv: ["node", "--test", "tests/unit/value.test.mjs"] };
+  config.executionProfiles[0].requiredStages[1].commands = ["package.json#test:unit"];
+  writeConfig(source, config);
+  write(join(source, "package.json"), `${JSON.stringify({ scripts: { "test:unit": definition } }, null, 2)}\n`);
+  write(join(source, "README.md"), "# Fixture\n");
+  write(join(source, "src/value.mjs"), "export const value = 1;\n");
+  write(join(source, "tests/unit/value.test.mjs"), "import test from 'node:test';\ntest('value', () => {});\n");
+  const base = commitAll(source, "base");
+  git(source, ["switch", "-c", "feature"]);
+  write(join(source, "src/value.mjs"), "export const value = 2;\n");
+  const feature = commitAll(source, "feature");
+
+  const parent = temporaryDirectory("repo-governance-clean-checkout-");
+  git(parent, ["clone", "--quiet", source, "checkout"]);
+  const repo = join(parent, "checkout");
+  const eventFile = join(parent, "event.json");
+  write(eventFile, JSON.stringify({ pull_request: { head: { sha: feature }, base: { sha: base } } }));
+
+  const report = verifyCiExecution(repo, {
+    profileId: "pr-validation",
+    eventFile,
+    runtimeVerifier(candidate) {
+      return { path: process.env.PATH, env: process.env, workingDirectory: candidate };
+    },
+  });
+  assert.equal(existsSync(testEvidencePath(repo)), false);
+  assert.equal(report.preExecutionCheck.pendingTestEvidence.length, 1);
+  assert.deepEqual(report.executionEvidence, [{ category: "unit", testEntryId: "unit-suite" }]);
+  assert.equal(report.staticCheck.ok, true);
+  assert.equal(Object.hasOwn(report.staticCheck, "pendingTestEvidence"), false);
+  assert.equal(report.staticCheck.satisfied[0].evidenceMode, "execution");
 });
 
 test("CI verification rejects a checkout that differs from the event revision", () => {

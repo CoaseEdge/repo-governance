@@ -165,6 +165,25 @@ For a version 2 contract, `engineeringProfile.effective` is the higher of the re
 
 `governanceDecision` is `blocked` when blocking findings exist, `needs-confirmation` when RG008 reports a warning or task drift is medium/high, and `satisfied` otherwise. The corresponding actions are `resolve-governance-findings`, `confirm-scope`, and `stop-if-objective-satisfied`. The engine never claims that the user objective is complete. When no version 2 Task Contract is active, `verificationAdvice` is `null`.
 
+## Test evidence
+
+High-impact requirements may select how RG001 accepts evidence:
+
+```json
+{
+  "anyOf": ["unit", "integration"],
+  "evidenceMode": "either"
+}
+```
+
+`change` requires the existing companion test diff, `execution` requires a successful declared test execution for the current diff, and `either` accepts either form. Omitting `evidenceMode` defaults to `change`, preserving existing repository behavior and report shape.
+
+Execution evidence reuses `testEntries`, `publicCommands`, execution-profile runtimes, and the existing diff fingerprint. A command entry declares its evidence categories in `testEntries[].categories` and remains linked through its existing `node` to exactly one public package command. Run it with `repo-governance verify-test --entry <id> --base <ref> --json`.
+
+After a successful local execution, the engine stores one local receipt set at the Git path `repo-governance/test-evidence.json`, outside the commit. Each receipt contains the current diff fingerprint, exact declared command identity, and `pass`. This receipt is a same-workspace cache: it prevents rerunning the same declared verification against an unchanged diff, but it is not transported to another checkout or treated as cross-environment proof. A changed diff or changed command declaration cannot reuse it.
+
+Clean-checkout verification uses same-session evidence instead. Its pre-execution check leaves only missing `execution` or `either` requirements pending while enforcing every other governance finding. After the declared execution profile succeeds, the existing command graph determines which declared test entries were reached and supplies their categories directly to a post-execution check. The engine does not create portable receipts, file hashes, signatures, chains, artifacts, or an audit ledger.
+
 ## Task drift score
 
 Standard checks also expose a `taskDrift` object with `taskDriftScore`, `severity`, and deterministic `reasons`. The score starts at zero and adds:

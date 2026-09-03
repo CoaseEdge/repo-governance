@@ -16,20 +16,46 @@ import { evaluateTaskDrift } from "./task-drift.mjs";
 import { collectChangeMetrics } from "./change-metrics.mjs";
 import { evaluateRg009 } from "./rg009.mjs";
 import { resolveEngineeringProfile, resolveVerificationAdvice } from "./engineering-profile.mjs";
+import { hasExecutionEvidenceRequirements, loadTestExecutionEvidence } from "./execution-evidence.mjs";
 
-export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
+export function checkRepository(repo, {
+  base,
+  head = "HEAD",
+  now,
+  executionEvidence,
+  allowPendingExecutionEvidence = false,
+} = {}) {
   const config = readConfig(repo);
   const baseRef = base || config.defaultBranch;
   const endpoints = resolveCanonicalBase(repo, baseRef, head);
   const changed = changedPaths(repo, endpoints.canonicalBaseSha, endpoints.headSha);
-  return evaluateRepository(repo, config, endpoints, changed, { now });
+  return evaluateRepository(repo, config, endpoints, changed, {
+    now,
+    executionEvidence,
+    allowPendingExecutionEvidence,
+  });
 }
 
-function evaluateRepository(repo, config, endpoints, changed, { now, mode = "standard", allowWaivers = true } = {}) {
-  const rg001 = evaluateRg001(config, changed);
+function evaluateRepository(repo, config, endpoints, changed, {
+  now,
+  mode = "standard",
+  allowWaivers = true,
+  executionEvidence,
+  allowPendingExecutionEvidence = false,
+} = {}) {
+  const resolvedExecutionEvidence = executionEvidence ?? (
+    mode === "standard" && hasExecutionEvidenceRequirements(config)
+      ? loadTestExecutionEvidence(repo, config, endpoints.canonicalBaseSha, endpoints.headSha)
+      : []
+  );
+  const rg001 = evaluateRg001(config, changed, resolvedExecutionEvidence);
   const waived = allowWaivers
     ? applyLocalWaivers(repo, rg001.findings, endpoints.canonicalBaseSha, endpoints.headSha, now)
     : { findings: rg001.findings, accepted: [] };
+  const pendingTestEvidence = allowPendingExecutionEvidence
+    ? waived.findings.filter((finding) => ["execution", "either"].includes(finding.evidenceMode))
+    : [];
+  const rg001Findings = waived.findings.filter((finding) => !pendingTestEvidence.includes(finding));
   const rg002 = evaluateRg002(repo, config);
   const rg003 = evaluateRg003(repo, config);
   const rg004 = evaluateRg004(repo, config, changed, endpoints.canonicalBaseSha);
@@ -46,7 +72,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const engineeringProfile = resolveEngineeringProfile(taskContract, config, changed);
   const taskDrift = evaluateTaskDrift(taskContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings, ...rg009.findings];
+  const findings = [...rg001Findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings, ...rg009.findings];
   const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
   const needsConfirmation = rg008.findings.some((finding) => finding.severity === "warning")
     || ["medium", "high"].includes(taskDrift.severity);
@@ -67,6 +93,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     changedPaths: changed,
     findings,
     satisfied: rg001.satisfied,
+    ...(allowPendingExecutionEvidence ? { pendingTestEvidence } : {}),
     acceptedWaivers: waived.accepted,
     testCommandGraph: rg002.reachable,
     executionCommandGraphs: rg006.commandGraphs,
@@ -85,7 +112,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",
     semanticCoverageVerified: false,
-    capabilityBoundary: "RG001 verifies mapped companion categories and change evidence only. It does not prove assertion quality, semantic coverage, or business correctness.",
+    capabilityBoundary: "RG001 verifies mapped companion change evidence or a successful declared execution receipt for the current diff. It does not prove assertion quality, semantic coverage, or business correctness.",
   };
 }
 

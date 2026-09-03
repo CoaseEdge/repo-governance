@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import test from "node:test";
 import { checkRepository } from "../src/check.mjs";
+import { evaluateRg001 } from "../src/rg001.mjs";
 import { baseConfig, commitAll, git, initGitRepo, write, writeConfig } from "./helpers.mjs";
 
 function configuredRepo() {
@@ -65,4 +66,37 @@ test("build command requires command contract and build verification", () => {
   commitAll(repo, "add build verification");
   result = checkRepository(repo, { base: "main" });
   assert.equal(result.ok, true);
+});
+
+test("omitted evidenceMode preserves exact change-evidence output", () => {
+  const config = baseConfig({
+    highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit"] }] }],
+  });
+  const result = evaluateRg001(config, ["src/value.js", "tests/unit/value.test.js"], [{ category: "unit", testEntryId: "unit" }]);
+  assert.deepEqual(result.satisfied, [{
+    rule: "RG001",
+    businessPaths: ["src/value.js"],
+    requiredTestCategories: ["unit"],
+    actualEvidence: [{ category: "unit", paths: ["tests/unit/value.test.js"] }],
+    message: "Required companion test category and change evidence are present; semantic coverage is not asserted.",
+    semanticCoverageVerified: false,
+    waivable: true,
+  }]);
+});
+
+test("execution and either modes consume only matching current-diff evidence", () => {
+  const executionConfig = baseConfig({
+    highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit", "integration"], evidenceMode: "execution" }] }],
+  });
+  const missing = evaluateRg001(executionConfig, ["src/value.js", "tests/unit/value.test.js"]);
+  assert.equal(missing.findings.length, 1);
+  const executed = evaluateRg001(executionConfig, ["src/value.js"], [{ category: "unit", testEntryId: "unit-suite" }]);
+  assert.deepEqual(executed.satisfied[0].actualEvidence, [{ category: "unit", testEntries: ["unit-suite"] }]);
+  assert.equal(executed.satisfied[0].evidenceMode, "execution");
+
+  const eitherConfig = baseConfig({
+    highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit"], evidenceMode: "either" }] }],
+  });
+  assert.equal(evaluateRg001(eitherConfig, ["src/value.js", "tests/unit/value.test.js"]).satisfied.length, 1);
+  assert.equal(evaluateRg001(eitherConfig, ["src/value.js"], [{ category: "unit", testEntryId: "unit-suite" }]).satisfied.length, 1);
 });

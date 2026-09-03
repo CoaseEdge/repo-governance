@@ -26,6 +26,7 @@ import { readPrePushStdin, verifyPrePushExecution } from "./pre-push.mjs";
 import { createArchitectureBaseline } from "./architecture/baseline.mjs";
 import { reportArchitectureDrift } from "./architecture/drift.mjs";
 import { compareTaskBaseline, createTaskBaseline, loadTestResults } from "./test-baseline/index.mjs";
+import { verifyTestEntry } from "./execution-evidence.mjs";
 
 function parse(argv) {
   const positional = [];
@@ -59,6 +60,7 @@ function help() {
   preflight [--json]
   prepare-pr [--base <ref>] [--json]
   check [--base <ref>] [--head <ref>] [--json]
+  verify-test --entry <id> [--base <ref>] [--json]
   architecture baseline [--replace] [--json]
   architecture drift [--json]
   baseline create --results <json> --created-at <ISO> [--replace] [--json]
@@ -244,6 +246,19 @@ export async function main(argv, context = {}) {
       const result = checkRepository(repo, { base: parsed.flags.base, head: parsed.flags.head });
       emit(result, json, result.ok ? stdout : stderr);
       return result.exitCode;
+    }
+    if (command === "verify-test") {
+      const invalidArguments = parsed.positional.length !== 1
+        || typeof parsed.flags.entry !== "string"
+        || Object.keys(parsed.flags).some((flag) => !["entry", "base", "json"].includes(flag));
+      if (invalidArguments) throw new GovernanceError("verify-test requires --entry <id> and accepts only --base <ref> and --json.", { code: "RG_INVOCATION" });
+      const result = (context.verifyTestEntry || verifyTestEntry)(repo, {
+        entryId: parsed.flags.entry,
+        base: parsed.flags.base,
+        env,
+      });
+      emit(result, json, stdout);
+      return 0;
     }
     if (command === "architecture" && subcommand === "baseline") {
       const invalidArguments = parsed.positional.length !== 2 || Object.keys(parsed.flags).some((flag) => !["replace", "json"].includes(flag));
