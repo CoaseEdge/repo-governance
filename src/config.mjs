@@ -32,6 +32,19 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
     expect(/^[0-9a-f]{64}$/.test(config.preset.sha256 || ""), "preset.sha256 must be a lowercase SHA-256 digest.");
   }
   expect(config.testCategories && typeof config.testCategories === "object", "testCategories is required.");
+  if (config.changeCategoryMappings !== undefined) {
+    expect(config.changeCategoryMappings && typeof config.changeCategoryMappings === "object" && !Array.isArray(config.changeCategoryMappings), "changeCategoryMappings must be an object.");
+    for (const [category, patterns] of Object.entries(config.changeCategoryMappings)) {
+      expect(/^[a-z][a-z0-9-]*$/.test(category), `Invalid change category: ${category}.`);
+      expect(
+        Array.isArray(patterns)
+          && patterns.length > 0
+          && patterns.every((pattern) => typeof pattern === "string" && pattern.length > 0)
+          && new Set(patterns).size === patterns.length,
+        `Invalid paths for change category ${category}.`,
+      );
+    }
+  }
   expect(Array.isArray(config.highImpactMappings), "highImpactMappings must be an array.");
   expect(config.testEntries === undefined || Array.isArray(config.testEntries), "testEntries must be an array of executable entries.");
   expect(config.testSupport === undefined || Array.isArray(config.testSupport), "testSupport must be an array of fixture/helper patterns.");

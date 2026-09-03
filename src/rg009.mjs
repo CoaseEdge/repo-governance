@@ -27,5 +27,18 @@ export function evaluateRg009(taskContract, metrics = null) {
       });
     }
   }
+  const allowedCategories = new Set(contract.allowedChangeCategories);
+  for (const { category, path } of metrics.changeCategories || []) {
+    if (!allowedCategories.has(category)) {
+      findings.push({
+        rule: "RG009",
+        type: "UNAUTHORIZED_CHANGE_CATEGORY",
+        category,
+        path,
+        severity: "error",
+        waivable: false,
+      });
+    }
+  }
   return { evaluated: true, findings };
 }

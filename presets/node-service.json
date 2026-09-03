@@ -16,6 +16,14 @@
     "command-contract": ["tests/commands/**"],
     "build-verification": ["tests/build/**"]
   },
+  "changeCategoryMappings": {
+    "tests": ["tests/**"],
+    "migrations": ["migrations/**"],
+    "dependencies": ["package.json", "package-lock.json", "npm-shrinkwrap.json"],
+    "ci": [".github/workflows/**"],
+    "docs": ["docs/**", "README*"],
+    "source": ["src/**"]
+  },
   "highImpactMappings": [
     { "businessPaths": ["src/**"], "requirements": [{ "anyOf": ["unit", "contract", "integration"] }] },
     { "businessPaths": ["migrations/**"], "requirements": [{ "anyOf": ["integration"] }] },

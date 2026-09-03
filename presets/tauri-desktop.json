@@ -16,6 +16,13 @@
     "command-contract": ["tests/commands/**"],
     "build-verification": ["tests/build/**"]
   },
+  "changeCategoryMappings": {
+    "tests": ["tests/**", "src-tauri/tests/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    "dependencies": ["package.json", "package-lock.json", "npm-shrinkwrap.json", "src-tauri/Cargo.toml", "src-tauri/Cargo.lock"],
+    "ci": [".github/workflows/**"],
+    "docs": ["docs/**", "README*"],
+    "source": ["src/**", "src-tauri/src/**"]
+  },
   "highImpactMappings": [
     { "businessPaths": ["src/**"], "requirements": [{ "anyOf": ["frontend", "unit"] }] },
     { "businessPaths": ["src-tauri/src/**"], "requirements": [{ "anyOf": ["integration"] }] },

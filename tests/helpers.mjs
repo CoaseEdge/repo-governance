@@ -62,6 +62,7 @@ export function baseConfig(overrides = {}) {
       "command-contract": ["tests/commands/**"],
       "build-verification": ["tests/build/**"],
     },
+    changeCategoryMappings: {},
     highImpactMappings: [],
     managedFiles: [".repo-governance.json"],
     testEntries: [],

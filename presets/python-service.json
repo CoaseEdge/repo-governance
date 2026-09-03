@@ -15,6 +15,14 @@
     "command-contract": ["tests/commands/**"],
     "build-verification": ["tests/build/**"]
   },
+  "changeCategoryMappings": {
+    "tests": ["tests/**"],
+    "migrations": ["migrations/**"],
+    "dependencies": ["pyproject.toml", "requirements*.txt", "poetry.lock", "uv.lock"],
+    "ci": [".github/workflows/**"],
+    "docs": ["docs/**", "README*"],
+    "source": ["src/**", "app/**"]
+  },
   "highImpactMappings": [
     { "businessPaths": ["src/**", "app/**"], "requirements": [{ "anyOf": ["unit", "contract", "integration"] }] },
     { "businessPaths": ["migrations/**"], "requirements": [{ "anyOf": ["integration"] }] },

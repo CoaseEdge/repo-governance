@@ -26,6 +26,24 @@ test("unknown mapped test category is a configuration error", () => {
   }), { enforceEngine: false }), /Unknown test category/);
 });
 
+test("change category mappings require explicit categories and unique path patterns", () => {
+  const config = baseConfig({
+    changeCategoryMappings: {
+      source: ["src/**"],
+      tests: ["tests/**"],
+    },
+  });
+  assert.equal(validateConfig(config, { enforceEngine: false }), config);
+  assert.throws(
+    () => validateConfig(baseConfig({ changeCategoryMappings: { CI: [".github/workflows/**"] } }), { enforceEngine: false }),
+    /Invalid change category/,
+  );
+  assert.throws(
+    () => validateConfig(baseConfig({ changeCategoryMappings: { ci: [".github/**", ".github/**"] } }), { enforceEngine: false }),
+    /Invalid paths for change category ci/,
+  );
+});
+
 test("execution contract structure rejects missing versions and embedded runtimes", () => {
   assert.throws(
     () => validateConfig(baseConfig({ executionContractVersion: undefined }), { enforceEngine: false }),

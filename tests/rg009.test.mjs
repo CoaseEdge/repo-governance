@@ -39,6 +39,7 @@ function metrics(overrides = {}) {
     testAddedLines: 40,
     migrationFiles: 0,
     outOfScopeFiles: 0,
+    changeCategories: [],
     ...overrides,
   };
 }
@@ -88,6 +89,31 @@ test("version 1 task contracts do not evaluate RG009", () => {
   assert.deepEqual(evaluateRg009(version1, metrics({ addedLines: 900 })), { evaluated: false, findings: [] });
 });
 
+test("version 2 contracts reject mapped change categories that were not authorized", () => {
+  const result = evaluateRg009(contract(), metrics({
+    changeCategories: [
+      { category: "ci", path: ".github/workflows/ci.yml" },
+      { category: "source", path: "src/login/button.mjs" },
+      { category: "tests", path: "tests/login/button.test.mjs" },
+    ],
+  }));
+  assert.deepEqual(result.findings, [{
+    rule: "RG009",
+    type: "UNAUTHORIZED_CHANGE_CATEGORY",
+    category: "ci",
+    path: ".github/workflows/ci.yml",
+    severity: "error",
+    waivable: false,
+  }]);
+
+  const version1 = contract({ schemaVersion: 1 });
+  delete version1.engineeringProfile;
+  version1.budget = { maxFiles: 4 };
+  assert.deepEqual(evaluateRg009(version1, metrics({
+    changeCategories: [{ category: "ci", path: ".github/workflows/ci.yml" }],
+  })), { evaluated: false, findings: [] });
+});
+
 test("repository checks include blocking RG009 findings from the Git diff", () => {
   const repo = initGitRepo();
   writeConfig(repo, baseConfig({ testCategories: { unit: ["tests/**/*.test.mjs"] } }));
@@ -107,6 +133,74 @@ test("repository checks include blocking RG009 findings from the Git diff", () =
     budget: "maxTestAddedLines",
     actual: 500,
     limit: 120,
+    severity: "error",
+    waivable: false,
+  }]);
+});
+
+test("repository checks block an explicitly mapped category outside version 2 authorization", () => {
+  const repo = initGitRepo();
+  writeConfig(repo, baseConfig({
+    testCategories: { unit: ["tests/**/*.test.mjs"] },
+    changeCategoryMappings: {
+      source: ["src/**"],
+      tests: ["tests/**"],
+      ci: [".github/workflows/**"],
+    },
+  }));
+  const taskContract = contract({
+    allowedPaths: ["src/login/**", "tests/login/**", ".github/workflows/**"],
+    budget: { ...contract().budget, maxNewFiles: 3 },
+  });
+  write(join(repo, TASK_CONTRACT_FILE), `${JSON.stringify(taskContract, null, 2)}\n`);
+  write(join(repo, "README.md"), "baseline\n");
+  const base = commitAll(repo, "baseline");
+  write(join(repo, "src/login/button.mjs"), "export {};\n");
+  write(join(repo, "tests/login/button.test.mjs"), "test();\n");
+  write(join(repo, ".github/workflows/ci.yml"), "name: CI\n");
+  commitAll(repo, "source tests and ci");
+
+  const result = checkRepository(repo, { base });
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.findings.filter((finding) => finding.rule === "RG009"), [{
+    rule: "RG009",
+    type: "UNAUTHORIZED_CHANGE_CATEGORY",
+    category: "ci",
+    path: ".github/workflows/ci.yml",
+    severity: "error",
+    waivable: false,
+  }]);
+});
+
+function coLocatedTestRepository(allowedChangeCategories) {
+  const repo = initGitRepo();
+  writeConfig(repo, baseConfig({
+    changeCategoryMappings: {
+      tests: ["src/**/*.test.ts"],
+      source: ["src/**"],
+    },
+  }));
+  write(join(repo, TASK_CONTRACT_FILE), `${JSON.stringify(contract({
+    allowedPaths: ["src/**"],
+    allowedChangeCategories,
+  }), null, 2)}\n`);
+  write(join(repo, "README.md"), "baseline\n");
+  const base = commitAll(repo, "baseline");
+  write(join(repo, "src/foo.test.ts"), "test();\n");
+  commitAll(repo, "co-located test");
+  return checkRepository(repo, { base });
+}
+
+test("first-match category authorization handles overlapping source and test paths", () => {
+  const testAuthorized = coLocatedTestRepository(["tests"]);
+  assert.deepEqual(testAuthorized.findings.filter((finding) => finding.rule === "RG009"), []);
+
+  const sourceOnly = coLocatedTestRepository(["source"]);
+  assert.deepEqual(sourceOnly.findings.filter((finding) => finding.rule === "RG009"), [{
+    rule: "RG009",
+    type: "UNAUTHORIZED_CHANGE_CATEGORY",
+    category: "tests",
+    path: "src/foo.test.ts",
     severity: "error",
     waivable: false,
   }]);
