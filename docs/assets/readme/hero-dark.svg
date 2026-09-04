@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="620" viewBox="0 0 1600 620" role="img" aria-labelledby="title desc">
+  <title id="title">One deterministic governance engine across every repository boundary</title>
+  <desc id="desc">Local Git hooks, CI, Codex, and Claude Code feed one version-pinned RG001 through RG009 engine that produces stable preflight, check, and pull request reports.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="0.55" stop-color="#0b1730"/>
+      <stop offset="1" stop-color="#06252d"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d4ed8"/>
+      <stop offset="1" stop-color="#0e7490"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#7dd3fc" stroke-opacity=".07"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#020617" flood-opacity=".45"/>
+    </filter>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0 0L9 4.5 0 9Z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="1598" height="618" rx="28" fill="url(#bg)" stroke="#173b5f" stroke-width="2"/>
+  <rect x="1" y="1" width="1598" height="618" rx="28" fill="url(#grid)"/>
+
+  <text x="72" y="80" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="750">Govern every change with evidence.</text>
+  <text x="72" y="120" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="21">One locked engine · stable JSON · offline push enforcement</text>
+  <g transform="translate(1400 56)">
+    <rect width="120" height="38" rx="19" fill="#172554"/>
+    <circle cx="22" cy="19" r="6" fill="#60a5fa"/>
+    <text x="38" y="25" fill="#bfdbfe" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700">v1.5</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="72" y="174" width="340" height="318" rx="24" fill="#101c2f" stroke="#1e3a5f" stroke-width="2"/>
+    <text x="104" y="218" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="2">CONSUMERS</text>
+    <g font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="650" fill="#e2e8f0">
+      <rect x="104" y="244" width="276" height="48" rx="12" fill="#15294b"/>
+      <circle cx="130" cy="268" r="7" fill="#60a5fa"/>
+      <text x="151" y="275">Local Git hooks</text>
+      <rect x="104" y="304" width="276" height="48" rx="12" fill="#0d3535"/>
+      <circle cx="130" cy="328" r="7" fill="#2dd4bf"/>
+      <text x="151" y="335">GitHub Actions</text>
+      <rect x="104" y="364" width="276" height="48" rx="12" fill="#282044"/>
+      <circle cx="130" cy="388" r="7" fill="#a78bfa"/>
+      <text x="151" y="395">Codex</text>
+      <rect x="104" y="424" width="276" height="48" rx="12" fill="#3a2414"/>
+      <circle cx="130" cy="448" r="7" fill="#fb923c"/>
+      <text x="151" y="455">Claude Code</text>
+    </g>
+  </g>
+
+  <path d="M432 333H526" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="467" cy="333" r="6" fill="#0c4a6e" stroke="#38bdf8" stroke-width="3"/>
+
+  <g filter="url(#shadow)">
+    <rect x="548" y="154" width="504" height="358" rx="28" fill="#101c2f" stroke="#225182" stroke-width="2"/>
+    <rect x="572" y="178" width="456" height="310" rx="22" fill="url(#core)"/>
+    <text x="800" y="220" text-anchor="middle" fill="#dbeafe" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="2.4">VERSION-PINNED ENGINE</text>
+    <circle cx="800" cy="333" r="82" fill="#ffffff" fill-opacity=".08" stroke="#ffffff" stroke-opacity=".28" stroke-width="2"/>
+    <circle cx="800" cy="333" r="64" fill="#ffffff" fill-opacity=".08"/>
+    <path d="M800 276L842 293V326C842 358 824 383 800 394C776 383 758 358 758 326V293Z" fill="none" stroke="#ffffff" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M780 332L794 346L822 315" fill="none" stroke="#a5f3fc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="800" y="438" text-anchor="middle" fill="#ffffff" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="780">RG001—RG009</text>
+    <text x="800" y="466" text-anchor="middle" fill="#cffafe" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15">deterministic facts · explicit contracts</text>
+  </g>
+
+  <path d="M1074 333H1168" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <circle cx="1109" cy="333" r="6" fill="#0c4a6e" stroke="#38bdf8" stroke-width="3"/>
+
+  <g filter="url(#shadow)">
+    <rect x="1190" y="174" width="338" height="318" rx="24" fill="#101c2f" stroke="#1e3a5f" stroke-width="2"/>
+    <text x="1222" y="218" fill="#94a3b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="2">STABLE OUTPUTS</text>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+      <rect x="1222" y="246" width="274" height="58" rx="12" fill="#050b16" stroke="#1e293b"/>
+      <circle cx="1248" cy="275" r="6" fill="#4ade80"/>
+      <text x="1266" y="282" fill="#e2e8f0" font-size="17">preflight --json</text>
+      <rect x="1222" y="318" width="274" height="58" rx="12" fill="#050b16" stroke="#1e293b"/>
+      <circle cx="1248" cy="347" r="6" fill="#4ade80"/>
+      <text x="1266" y="354" fill="#e2e8f0" font-size="17">check --json</text>
+      <rect x="1222" y="390" width="274" height="58" rx="12" fill="#050b16" stroke="#1e293b"/>
+      <circle cx="1248" cy="419" r="6" fill="#4ade80"/>
+      <text x="1266" y="426" fill="#e2e8f0" font-size="17">prepare-pr --json</text>
+    </g>
+  </g>
+
+  <g transform="translate(356 548)" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="650">
+    <rect width="178" height="38" rx="19" fill="#172554"/><text x="89" y="25" text-anchor="middle" fill="#bfdbfe">OFFLINE HOOKS</text>
+    <rect x="194" width="202" height="38" rx="19" fill="#0d3535"/><text x="295" y="25" text-anchor="middle" fill="#99f6e4">EXPLICIT CONTRACTS</text>
+    <rect x="412" width="190" height="38" rx="19" fill="#282044"/><text x="507" y="25" text-anchor="middle" fill="#ddd6fe">ISOLATED EXECUTION</text>
+    <rect x="618" width="196" height="38" rx="19" fill="#3a2414"/><text x="716" y="25" text-anchor="middle" fill="#fed7aa">NO LLM ENFORCEMENT</text>
+  </g>
+</svg>
