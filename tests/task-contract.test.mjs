@@ -31,6 +31,28 @@ function taskContract(overrides = {}) {
   };
 }
 
+function taskContractV2(overrides = {}) {
+  return {
+    schemaVersion: 2,
+    taskId: "fix-login-button",
+    objective: "Fix login button alignment",
+    engineeringProfile: "small",
+    allowedPaths: ["tests/login/**", "src/login/**"],
+    forbiddenPaths: [],
+    allowedChangeCategories: ["tests", "source"],
+    budget: {
+      maxFiles: 4,
+      maxDirectories: 2,
+      maxOutOfScopeFiles: 0,
+      maxNewFiles: 1,
+      maxAddedLines: 200,
+      maxTestFiles: 1,
+      maxTestAddedLines: 120,
+    },
+    ...overrides,
+  };
+}
+
 function writeContract(repo, contract) {
   write(join(repo, TASK_CONTRACT_FILE), typeof contract === "string" ? contract : `${JSON.stringify(contract, null, 2)}\n`);
 }
@@ -71,6 +93,31 @@ test("valid task contracts load with deterministic normalization", () => {
   assert.deepEqual(validateTaskContract(example).drift, { subsystems: [], sharedPaths: [], ciReleasePaths: [] });
 });
 
+test("version 2 task contracts load with strict deterministic normalization", () => {
+  const contract = validateTaskContract(taskContractV2({ objective: "  Fix login button alignment  " }));
+
+  assert.deepEqual(contract, {
+    schemaVersion: 2,
+    taskId: "fix-login-button",
+    objective: "Fix login button alignment",
+    engineeringProfile: "small",
+    allowedPaths: ["src/login/**", "tests/login/**"],
+    forbiddenPaths: [],
+    migrationPaths: [],
+    allowedChangeCategories: ["source", "tests"],
+    drift: { subsystems: [], sharedPaths: [], ciReleasePaths: [] },
+    budget: {
+      maxFiles: 4,
+      maxDirectories: 2,
+      maxOutOfScopeFiles: 0,
+      maxNewFiles: 1,
+      maxAddedLines: 200,
+      maxTestFiles: 1,
+      maxTestAddedLines: 120,
+    },
+  });
+});
+
 test("invalid task contracts are rejected with RG_TASK_CONTRACT", () => {
   const withoutObjective = taskContract();
   delete withoutObjective.objective;
@@ -100,6 +147,17 @@ test("invalid task contracts are rejected with RG_TASK_CONTRACT", () => {
     taskContract({ migrationPaths: [], budget: { maxFiles: 30, maxMigrations: 1 } }),
     taskContract({ budget: { maxFiles: 30, maxOutOfScopeFiles: -1 } }),
     taskContract({ budget: { maxFiles: 30, unknown: 1 } }),
+    taskContract({ schemaVersion: 3 }),
+    taskContract({ engineeringProfile: "small" }),
+    taskContract({ budget: { maxFiles: 30, maxNewFiles: 1 } }),
+    taskContractV2({ engineeringProfile: "low" }),
+    taskContractV2({ engineeringProfile: undefined }),
+    taskContractV2({ unexpected: true }),
+    taskContractV2({ budget: { maxFiles: 4, maxNewFiles: -1 } }),
+    taskContractV2({ budget: { maxFiles: 4, maxAddedLines: 1.5 } }),
+    taskContractV2({ budget: { maxFiles: 4, maxTestFiles: -1 } }),
+    taskContractV2({ budget: { maxFiles: 4, maxTestAddedLines: -1 } }),
+    taskContractV2({ budget: { maxFiles: 4, unknown: 1 } }),
   ];
 
   for (const contract of invalidContracts) {

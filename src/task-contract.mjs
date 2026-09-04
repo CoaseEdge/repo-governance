@@ -5,6 +5,10 @@ import { GovernanceError } from "./errors.mjs";
 
 export const TASK_CONTRACT_FILE = ".repo-governance/task-contract.json";
 
+const ENGINEERING_PROFILES = taskContractSchema.$defs.engineeringProfile.enum;
+const BUDGET_FIELDS = ["maxDirectories", "maxMigrations", "maxOutOfScopeFiles"];
+const V2_BUDGET_FIELDS = ["maxNewFiles", "maxAddedLines", "maxTestFiles", "maxTestAddedLines"];
+
 function compare(left, right) {
   return Buffer.from(left).compare(Buffer.from(right));
 }
@@ -45,17 +49,25 @@ function safePathPattern(pattern, field) {
 }
 
 export function validateTaskContract(input) {
+  expect(input && typeof input === "object" && !Array.isArray(input), "Task contract must be an object.");
+  expect([1, 2].includes(input.schemaVersion), "Unsupported task contract schemaVersion; expected 1 or 2.");
+  const schemaVersion = input.schemaVersion;
+  const allowedFields = Object.keys(taskContractSchema.properties).filter(
+    (field) => schemaVersion === 2 || field !== "engineeringProfile",
+  );
   validateObjectKeys(input, {
-    required: taskContractSchema.required,
-    allowed: Object.keys(taskContractSchema.properties),
+    required: schemaVersion === 2 ? [...taskContractSchema.required, "engineeringProfile"] : taskContractSchema.required,
+    allowed: allowedFields,
   }, "Task contract");
-  expect(input.schemaVersion === 1, "Unsupported task contract schemaVersion; expected 1.");
   expect(
     typeof input.taskId === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.taskId),
     "taskId must be a stable identifier.",
     { taskId: input.taskId },
   );
   expect(typeof input.objective === "string" && input.objective.trim().length > 0, "objective must be a non-empty string.");
+  if (schemaVersion === 2) {
+    expect(ENGINEERING_PROFILES.includes(input.engineeringProfile), "engineeringProfile must be one of small, standard, high, or critical.");
+  }
 
   const allowedPaths = stringArray(input.allowedPaths, "allowedPaths", { nonEmpty: true });
   const forbiddenPaths = stringArray(input.forbiddenPaths, "forbiddenPaths");
@@ -105,11 +117,12 @@ export function validateTaskContract(input) {
   for (const pattern of ciReleasePaths) safePathPattern(pattern, "drift.ciReleasePaths");
 
   validateObjectKeys(input.budget, {
-    required: taskContractSchema.properties.budget.required,
-    allowed: Object.keys(taskContractSchema.properties.budget.properties),
+    required: taskContractSchema.$defs.budgetV1.required,
+    allowed: Object.keys(taskContractSchema.$defs[schemaVersion === 1 ? "budgetV1" : "budgetV2"].properties),
   }, "Task contract budget");
   expect(Number.isInteger(input.budget.maxFiles) && input.budget.maxFiles >= 1, "budget.maxFiles must be a positive integer.");
-  for (const field of ["maxDirectories", "maxMigrations", "maxOutOfScopeFiles"]) {
+  const optionalBudgetFields = schemaVersion === 2 ? [...BUDGET_FIELDS, ...V2_BUDGET_FIELDS] : BUDGET_FIELDS;
+  for (const field of optionalBudgetFields) {
     if (input.budget[field] !== undefined) {
       expect(Number.isInteger(input.budget[field]) && input.budget[field] >= 0, `budget.${field} must be a non-negative integer.`);
     }
@@ -117,14 +130,15 @@ export function validateTaskContract(input) {
   expect(input.budget.maxMigrations === undefined || migrationPaths.length > 0, "migrationPaths must not be empty when budget.maxMigrations is declared.");
 
   const budget = { maxFiles: input.budget.maxFiles };
-  for (const field of ["maxDirectories", "maxMigrations", "maxOutOfScopeFiles"]) {
+  for (const field of optionalBudgetFields) {
     if (input.budget[field] !== undefined) budget[field] = input.budget[field];
   }
 
   return {
-    schemaVersion: 1,
+    schemaVersion,
     taskId: input.taskId,
     objective: input.objective.trim(),
+    ...(schemaVersion === 2 ? { engineeringProfile: input.engineeringProfile } : {}),
     allowedPaths,
     forbiddenPaths,
     migrationPaths,
