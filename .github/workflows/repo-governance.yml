@@ -1,4 +1,4 @@
-# repo-governance engine 1.4.0
+# repo-governance engine 1.5.0
 name: Repo Governance
 
 on:
@@ -27,8 +27,8 @@ jobs:
           node-version: 22
       - name: Run governed validation
         id: governance
-        uses: CoaseEdge/repo-governance/action@48a43aff1e601591d6bb91aa2d74798d2de59213
+        uses: CoaseEdge/repo-governance/action@7b739dd55aa85b088d675941efeed2f4cf0e2ca8
         with:
           profile: pr-validation
           event-file: ${{ github.event_path }}
-          engine-commit-sha: 48a43aff1e601591d6bb91aa2d74798d2de59213
+          engine-commit-sha: 7b739dd55aa85b088d675941efeed2f4cf0e2ca8

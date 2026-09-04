@@ -55,11 +55,7 @@ test("protected workflow and package release match the locked engine identity", 
   const contents = readFileSync(join(root, ".github", "workflows", "repo-governance.yml"), "utf8");
   const workflow = parse(contents);
   const actionRef = `CoaseEdge/repo-governance/action@${config.engineCommitSha}`;
-  assert.ok(
-    config.engineVersion === packageJson.version
-      || (config.engineVersion === "1.4.0" && packageJson.version === "1.5.0"),
-    "self-governance may lag only during the reviewed v1.5 engine-first migration commit",
-  );
+  assert.equal(config.engineVersion, packageJson.version);
   assert.equal(packageJson.scripts["ci:pr"], "npm run build:sea && npm run check");
   assert.equal(contents, thinWorkflow({ engineVersion: config.engineVersion, engineCommitSha: config.engineCommitSha }));
   assert.equal(workflow.jobs.validate.steps.at(-1).uses, actionRef);
