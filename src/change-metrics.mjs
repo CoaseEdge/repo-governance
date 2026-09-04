@@ -55,6 +55,13 @@ export function collectChangeMetrics(repo, config, taskContract, baseSha, headSh
   const testPaths = paths.filter((path) => matchesAny(path, testPatterns));
   const addedLines = paths.reduce((total, path) => total + (linesByPath.get(path)?.added || 0), 0);
   const deletedLines = paths.reduce((total, path) => total + (linesByPath.get(path)?.deleted || 0), 0);
+  const categoryMappings = Object.entries(config.changeCategoryMappings || {});
+  const changeCategories = paths
+    .flatMap((path) => {
+      const match = categoryMappings.find(([, patterns]) => matchesAny(path, patterns));
+      return match ? [{ category: match[0], path }] : [];
+    })
+    .sort((left, right) => compare(`${left.category}\0${left.path}`, `${right.category}\0${right.path}`));
 
   return {
     changedFiles: paths.length,
@@ -68,5 +75,6 @@ export function collectChangeMetrics(repo, config, taskContract, baseSha, headSh
     outOfScopeFiles: paths.filter(
       (path) => !matchesAny(path, contract.forbiddenPaths) && !matchesAny(path, contract.allowedPaths),
     ).length,
+    changeCategories,
   };
 }

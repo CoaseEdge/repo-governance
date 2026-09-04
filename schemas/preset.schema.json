@@ -34,6 +34,16 @@
         "items": { "type": "string", "minLength": 1 }
       }
     },
+    "changeCategoryMappings": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
     "highImpactMappings": { "type": "array", "items": { "type": "object" } },
     "testEntries": { "type": "array", "items": { "type": "object" } },
     "testSupport": { "type": "array", "items": { "type": "string" } },

@@ -16,6 +16,13 @@
     "command-contract": ["tests/commands/**"],
     "build-verification": ["tests/build/**"]
   },
+  "changeCategoryMappings": {
+    "tests": ["tests/**", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    "dependencies": ["package.json", "package-lock.json", "npm-shrinkwrap.json"],
+    "ci": [".github/workflows/**"],
+    "docs": ["docs/**", "README*"],
+    "source": ["src/**"]
+  },
   "highImpactMappings": [
     { "businessPaths": ["src/components/**", "src/pages/**", "src/routes/**", "src/hooks/**"], "requirements": [{ "anyOf": ["frontend", "unit"] }] },
     { "businessPaths": ["package.json", "vite.config.*", "next.config.*", "webpack.config.*"], "requirements": [{ "anyOf": ["command-contract"] }, { "anyOf": ["build-verification"] }] }

@@ -22,6 +22,7 @@ test("optional package commands materialize exact contracts without inventing mi
   assert.equal(result.config.governanceCompleteness, "complete");
   assert.equal(result.config.executionProfiles[0].consumers.some((consumer) => consumer.type === "pre-push"), true);
   assert.equal(result.config.executionProfiles[0].consumers.some((consumer) => consumer.type === "github-actions"), true);
+  assert.deepEqual(result.config.changeCategoryMappings, loadPreset("node-library").preset.changeCategoryMappings);
 });
 
 test("required selectors fail before configuration materialization", () => {

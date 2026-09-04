@@ -46,6 +46,19 @@ export function validatePreset(preset) {
     expect(Array.isArray(preset[key]), `Preset ${preset.name} needs ${key}.`);
   }
   expect(preset.testCategories && typeof preset.testCategories === "object", `Preset ${preset.name} needs testCategories.`);
+  if (preset.changeCategoryMappings !== undefined) {
+    expect(preset.changeCategoryMappings && typeof preset.changeCategoryMappings === "object" && !Array.isArray(preset.changeCategoryMappings), `Preset ${preset.name} changeCategoryMappings must be an object.`);
+    for (const [category, patterns] of Object.entries(preset.changeCategoryMappings)) {
+      expect(/^[a-z][a-z0-9-]*$/.test(category), `Preset ${preset.name} has invalid change category ${category}.`);
+      expect(
+        Array.isArray(patterns)
+          && patterns.length > 0
+          && patterns.every((pattern) => typeof pattern === "string" && pattern.length > 0)
+          && new Set(patterns).size === patterns.length,
+        `Preset ${preset.name} has invalid paths for change category ${category}.`,
+      );
+    }
+  }
   expect(preset.testTiers && ["pr-blocking", "nightly", "manual-smoke"].every((tier) => Array.isArray(preset.testTiers[tier])), `Preset ${preset.name} needs all test tiers.`);
   expect(preset.commandAliases && typeof preset.commandAliases === "object", `Preset ${preset.name} needs commandAliases.`);
   expect(preset.hookStrategy === "connect-effective-pre-push", `Preset ${preset.name} has unsupported hookStrategy.`);
@@ -122,6 +135,7 @@ export function materializePreset(repo, loaded, { engineCommitSha }) {
       governanceCompleteness: "complete",
       ...governanceOnlyExecutionContract(),
       testCategories: preset.testCategories,
+      changeCategoryMappings: preset.changeCategoryMappings || {},
       highImpactMappings: preset.highImpactMappings,
       testEntries: preset.testEntries,
       testSupport: preset.testSupport,

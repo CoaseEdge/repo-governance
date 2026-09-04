@@ -49,6 +49,7 @@ test("change metrics count Git diff lines and configured test files", () => {
     testAddedLines: 40,
     migrationFiles: 0,
     outOfScopeFiles: 0,
+    changeCategories: [],
   });
 });
 
@@ -72,6 +73,7 @@ test("change metrics reuse migration, scope, and test-support path declarations"
     testAddedLines: 4,
     migrationFiles: 1,
     outOfScopeFiles: 1,
+    changeCategories: [],
   });
 });
 test("an exact rename does not consume new-file or added-line budget", () => {
@@ -86,4 +88,42 @@ test("an exact rename does not consume new-file or added-line budget", () => {
   assert.equal(metrics.newFiles, 0);
   assert.equal(metrics.addedLines, 0);
   assert.equal(metrics.deletedLines, 0);
+});
+
+test("change metrics classify paths only through repository mappings", () => {
+  const repo = initGitRepo();
+  write(join(repo, "README.md"), "# Baseline\n");
+  const base = commitAll(repo, "baseline");
+  write(join(repo, ".github/workflows/ci.yml"), "name: CI\n");
+  write(join(repo, "src/login/button.mjs"), "export {};\n");
+  write(join(repo, "tests/login/button.test.mjs"), "test();\n");
+  const head = commitAll(repo, "categorized changes");
+
+  const mapped = config();
+  mapped.changeCategoryMappings = {
+    tests: ["tests/**"],
+    ci: [".github/workflows/**"],
+    source: ["src/**"],
+  };
+  assert.deepEqual(collectChangeMetrics(repo, mapped, contract(), base, head).changeCategories, [
+    { category: "ci", path: ".github/workflows/ci.yml" },
+    { category: "source", path: "src/login/button.mjs" },
+    { category: "tests", path: "tests/login/button.test.mjs" },
+  ]);
+});
+test("change metrics use the first declared matching category for each path", () => {
+  const repo = initGitRepo();
+  write(join(repo, "README.md"), "# Baseline\n");
+  const base = commitAll(repo, "baseline");
+  write(join(repo, "src/login/button.test.ts"), "test();\n");
+  const head = commitAll(repo, "co-located test");
+
+  const mapped = config();
+  mapped.changeCategoryMappings = {
+    tests: ["src/**/*.test.ts"],
+    source: ["src/**"],
+  };
+  assert.deepEqual(collectChangeMetrics(repo, mapped, contract(), base, head).changeCategories, [
+    { category: "tests", path: "src/login/button.test.ts" },
+  ]);
 });

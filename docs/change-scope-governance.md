@@ -105,9 +105,24 @@ Forbidden paths take precedence, so one changed file produces at most one path f
 
 For a version 2 task contract, the engine derives deterministic facts from the canonical Git diff: changed files, new files, direct parent directories, added lines, deleted lines, test files, test added lines, migration files, and out-of-scope files. RG009 recognizes only exact, content-preserving renames so they do not consume new-file or line-addition budget; modified moves remain ordinary delete-and-add facts. RG008 keeps its existing changed-path semantics. Binary diff markers do not represent lines and contribute zero added or deleted lines.
 
-Test files are matched only against the repository's existing `testCategories` and `testSupport` patterns. Migration and out-of-scope counts reuse the Task Contract's explicit path declarations. The engine does not inspect code semantics or infer file roles from names.
+Test files are matched only against the repository's existing `testCategories` and `testSupport` patterns. Migration and out-of-scope counts reuse the Task Contract's explicit path declarations. Change categories are matched only through the repository's optional `changeCategoryMappings`; the engine does not inspect code semantics or infer file roles from names.
 
-RG009 compares `newFiles`, `addedLines`, `testFiles`, and `testAddedLines` with `maxNewFiles`, `maxAddedLines`, `maxTestFiles`, and `maxTestAddedLines`. Each exceeded limit emits a non-waivable `COMPLEXITY_BUDGET_EXCEEDED` error with the budget name, actual value, and limit. Version 1 contracts do not evaluate RG009. RG008 remains responsible only for task location and its existing scope budgets.
+```json
+{
+  "changeCategoryMappings": {
+    "tests": ["tests/**"],
+    "migrations": ["migrations/**"],
+    "dependencies": ["package.json", "package-lock.json"],
+    "ci": [".github/workflows/**"],
+    "docs": ["docs/**", "README*"],
+    "source": ["src/**"]
+  }
+}
+```
+
+Mappings are ordered repository policy, may be supplied by an explicit preset, and contain only repository-relative patterns. Each changed path receives the first declared matching category, so specific authorization classes must precede broader ones. Adding a category to the Task Contract is a human authorization change; the engine never expands `allowedChangeCategories` on an Agent's behalf.
+
+RG009 compares `newFiles`, `addedLines`, `testFiles`, and `testAddedLines` with `maxNewFiles`, `maxAddedLines`, `maxTestFiles`, and `maxTestAddedLines`. Each exceeded limit emits a non-waivable `COMPLEXITY_BUDGET_EXCEEDED` error with the budget name, actual value, and limit. For version 2 contracts, a path whose effective mapped category is absent from `allowedChangeCategories` emits `UNAUTHORIZED_CHANGE_CATEGORY` with its category and path. Unmapped paths have no inferred category. Version 1 contracts do not evaluate RG009. RG008 remains responsible only for task location and its existing scope budgets.
 
 ## Task drift score
 
@@ -133,4 +148,4 @@ The Agent stops before repository changes for blocking or incompatible reports a
 
 ## Enforcement boundary
 
-`FORBIDDEN_PATH`, `BUDGET_EXCEEDED`, and `COMPLEXITY_BUDGET_EXCEEDED` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. The engine does not interpret `allowedChangeCategories`, apply waivers, call an LLM, access the network, or modify source code. Agent adapters only explain this deterministic output and cannot override the enforcement boundary.
+`FORBIDDEN_PATH`, `BUDGET_EXCEEDED`, `COMPLEXITY_BUDGET_EXCEEDED`, and `UNAUTHORIZED_CHANGE_CATEGORY` are errors that block the check. Individual `OUT_OF_SCOPE_CHANGE` entries remain warnings when they fit within `maxOutOfScopeFiles`; exceeding that allowance adds a blocking budget error. Category authorization applies only to version 2 contracts and only to explicit repository mappings. The engine does not guess categories, apply waivers, call an LLM, access the network, or modify source code. Agent adapters only explain this deterministic output and cannot override the enforcement boundary.
