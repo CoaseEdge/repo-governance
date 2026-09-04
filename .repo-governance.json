@@ -138,8 +138,8 @@
       ]
     }
   ],
-  "engineVersion": "1.4.0",
-  "engineCommitSha": "48a43aff1e601591d6bb91aa2d74798d2de59213",
+  "engineVersion": "1.5.0",
+  "engineCommitSha": "7b739dd55aa85b088d675941efeed2f4cf0e2ca8",
   "diffFingerprintAlgorithm": "git-raw-z-v1-sha256",
   "defaultBranch": "main",
   "testCategories": {
@@ -310,7 +310,7 @@
   "guards": [],
   "policyChecks": [],
   "workflowAllowedEntries": [
-    "uses:CoaseEdge/repo-governance/action@48a43aff1e601591d6bb91aa2d74798d2de59213"
+    "uses:CoaseEdge/repo-governance/action@7b739dd55aa85b088d675941efeed2f4cf0e2ca8"
   ],
   "waiverApprovers": [
     "Andrewlislin"
