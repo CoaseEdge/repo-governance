@@ -1,25 +1,80 @@
 # repo-governance
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[English](./README.md) · [简体中文](./README.zh-CN.md)
 
-由本地 Git hooks、CI、Codex 和 Claude Code 共享的确定性仓库治理工具。本项目有意拆分为严格且可解释的 CLI 规则引擎和精简的建议型 Agent 适配层。本地与 CI 使用固定为同一版本的规则引擎。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/readme/hero-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="./docs/assets/readme/hero-light.svg">
+  <img alt="repo-governance 将本地 Git Hooks、CI、Codex 与 Claude Code 连接到同一个确定性治理引擎" src="./docs/assets/readme/hero-light.svg">
+</picture>
 
-## 能力边界
+<p align="center"><strong>让本地 Git Hooks、CI、Codex 与 Claude Code 执行同一套版本锁定的仓库治理规则。</strong></p>
 
-`RG001` 验证高影响业务变更是否在同一次变更中为配置要求的每个配套测试类别提供了证据。它**不能**证明断言覆盖了新的语义、实现正确或者测试具有高质量。测试执行、代码审查以及 `plan-change-test-impact` 的建议仍然不可或缺。
+<p align="center">
+  <a href="https://github.com/CoaseEdge/repo-governance/actions/workflows/ci.yml"><img alt="CI 状态" src="https://img.shields.io/github/actions/workflow/status/CoaseEdge/repo-governance/ci.yml?branch=main&amp;style=flat-square&amp;label=CI"></a>
+  <a href="https://github.com/CoaseEdge/repo-governance/actions/workflows/repo-governance.yml"><img alt="Repo Governance 状态" src="https://img.shields.io/github/actions/workflow/status/CoaseEdge/repo-governance/repo-governance.yml?style=flat-square&amp;label=governance"></a>
+  <a href="https://github.com/CoaseEdge/repo-governance/releases/latest"><img alt="最新版本" src="https://img.shields.io/github/v/release/CoaseEdge/repo-governance?sort=semver&amp;style=flat-square"></a>
+  <a href="./package.json"><img alt="Node.js 22.x" src="https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js&amp;logoColor=white&amp;style=flat-square"></a>
+  <a href="./LICENSE"><img alt="MIT 许可证" src="https://img.shields.io/github/license/CoaseEdge/repo-governance?style=flat-square"></a>
+  <img alt="支持 Linux、macOS 和 Windows" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-475569?style=flat-square">
+</p>
 
-## 开发
+`repo-governance` 把仓库策略转化为确定、可解释的检查。开发者、编码 Agent、Git Hooks 与 GitHub Actions 共同使用同一个锁定版本的引擎，不需要让每个集成各自重新解释策略。
 
-需要 Node.js 22。
+关键推送门禁完全离线。引擎不会让 LLM 作出硬性判定，不会根据代码语义猜测风险，不会改写源码，也不会宣称任务已经完成。
 
-```sh
-npm test
-npm run check:static
-```
+## 为什么使用 repo-governance
 
-## 源码安装
+| 单一规则源 | 比例工程 | 可验证证据 |
+| --- | --- | --- |
+| 本地 Hooks、CI、Codex 与 Claude Code 使用同一份稳定 JSON 契约。 | 任务范围、变更类别、复杂度预算与风险区让验证成本与改动规模相匹配。 | 版本锁定引擎、精确 revision、隔离执行与当前 diff 测试证据让结果可复现。 |
 
-适用于本地开发或让 Agent 协助部署：
+## 工作原理
+
+![从只读预检、任务契约、仓库检查，到隔离 pre-push 验证与 CI 的治理流程](./docs/assets/readme/governance-flow.svg)
+
+三层门禁各自承担不同职责：
+
+- `preflight` 是只读 Agent 门禁，用于判断仓库工作能否开始。
+- 安装后的 pre-push Hook 使用候选提交锁定的引擎，在隔离的本地 clone 中验证每个拟推送 tip。
+- `prepare-pr` 检查干净且已提交的变更，生成确定性 PR 报告和正文草稿，但不写入 GitHub 状态。
+
+Preflight JSON 字段相互独立：`ok` 只表示检查完成，`status` 表示工作流结果，`repoState` 表示仓库接入状态。只有 `status: "succeeded"` 且 `repoState: "managed"` 才允许写入。可选 Agent 策略可以为 bootstrap 授权显式 Preset，但绝不授权 `github enforce --confirm`、创建 PR 或评论、修改 `ruleset`。
+
+## RG001–RG009 能力地图
+
+| 规则 | 治理对象 |
+| --- | --- |
+| `RG001` | 要求高影响变更提供已配置的配套测试改动，或成功执行声明的测试。 |
+| `RG002` | 确保可执行测试只属于 `pr-blocking`、`nightly` 或 `manual-smoke` 中的一层。 |
+| `RG003` | 确保受保护 workflow 调用声明的中央规则源，而不是复制实现。 |
+| `RG004` | 锁定公共命令定义，并要求受影响的测试、文档和 workflow 消费者随已接受的变更一起更新。 |
+| `RG005` | 将豁免审批绑定到允许的审批者、当前 PR head 与受治理的业务 diff。 |
+| `RG006` | 校验 runtime、包管理器、依赖准备、有序执行阶段及其消费者。 |
+| `RG007` | 执行仓库声明的架构依赖规则，并报告循环、漂移指标与健康分。 |
+| `RG008` | 执行 Task Contract 的路径和范围预算，并报告确定性的任务漂移。 |
+| `RG009` | 执行变更类别授权，以及文件、代码行和测试的比例预算。 |
+
+这些规则只报告仓库已声明的事实。它们不能证明语义正确、断言质量、运行时调用方向，或用户目标已经实现。
+
+## v1.5 新增能力
+
+[v1.5](./docs/v1.5-release.md) 在保持配置 Schema v1、pre-push 协议 v1 和执行契约 v1 兼容的前提下，加入确定性的比例工程治理。
+
+- **Task Contract v2** 新增 `small`、`standard`、`high` 和 `critical` 四级工程 Profile。
+- **RG009** 从规范 Git diff 统计新增文件、增加行数、测试文件与测试增加行数。
+- **显式变更授权**把仓库路径映射为类别，任务必须先声明允许的类别。
+- **风险区**只能抬高、不能降低实际工程 Profile。
+- **有限建议**返回最低验证范围，以及 `satisfied`、`needs-confirmation` 或 `blocked` 治理决策。
+- **当前 diff 证据**允许 RG001 接受已声明测试的执行结果，但不会把本地 receipt 当作可移植证明。
+
+完全保持内容不变的 rename 不消耗 RG009 的新增文件或增加行数预算。引擎绝不根据文件名或代码含义推断类别、Profile 或风险等级。
+
+## 快速开始
+
+### 从源码安装
+
+开发和源码安装需要 Node.js 22 与 npm 10.9.2。也可以从 [GitHub 最新 Release](https://github.com/CoaseEdge/repo-governance/releases/latest) 获取经过验证的平台包。
 
 ```sh
 git clone https://github.com/CoaseEdge/repo-governance.git
@@ -28,138 +83,111 @@ npm ci
 npm run install:local
 ```
 
-该命令会构建本地 engine 和自包含的版本感知 launcher，安装到标准 repo-governance 数据目录，并在 `~/.local/bin/repo-governance`（Windows 为用户级 bin 目录）创建托管的裸命令入口。安装器绝不修改 shell profile。若该 bin 目录不在当前 `PATH` 中，安装结果会返回 `pathConfigured:false` 与可复制的 `actionRequired` 命令，并明确说明“入口已创建，但当前 shell 尚不能使用裸命令”。
+安装器会构建 engine 和自包含 launcher，把版本化数据写入平台用户数据目录，并创建托管的 `repo-governance` 命令入口。它绝不修改 shell profile；如果用户级 bin 目录不在 `PATH` 中，会返回一条明确的配置命令。
 
-安装的 pre-push hook 保持精简且离线运行。wrapper 会安全捕获 stdin，并把已有 Hook 保存为经过摘要校验的 sidecar；稳定 launcher 针对每个拟推送 tip，从候选 commit 读取精确 engine identity 和 `executionContractVersion`，验证锁定可执行文件、`prePushProtocolVersion` 与支持的执行契约版本，再进入隔离的 `repo-governance verify-execution --pre-push` 路径。它不会降级到可变工作区配置、默认 engine 或旧版 `check`。协议字段缺失、版本不兼容、候选配置损坏、engine 缺失或摘要错误都会阻断执行。
+### 接入已有仓库
 
-## Agent 工作前预检与自动接入策略
-
-Agent 修改仓库文件、运行任务测试、提交或准备 Pull Request 前，先运行：
-
-```sh
-repo-governance preflight --json
-```
-
-该命令离线且只读。`ok` 表示检查是否完成，`status` 表示工作流结果，`exitCode` 是 shell 兼容的 `0`/`1`/`2` 结果，三者语义相互独立。只有 `status: "succeeded"` 且 `repoState: "managed"` 才允许仓库写入；`ok: true` 与 `status: "needs_attention"` 的组合绝不代表可写。
-
-可选的 `~/.repo-governance-agent.json` 可以把规范化真实路径前缀映射到显式 Preset。匹配确定性地选择最长前缀，同优先级冲突直接阻断；`autoBootstrap` 只能在已经命中 Preset 时免去 `bootstrap` 的重复确认。它绝不授权猜测 Preset、执行 `github enforce --confirm`、创建 PR、发表评论、修改 ruleset 或其他远端写入。Schema、生命周期和完整状态示例见 [Agent 自动接入](docs/agent-auto-adoption.md)。
-
-三层门禁职责彼此独立：Agent preflight 判断工作能否开始；仓库的离线 Git pre-push Hook 防守每次受治理的 push；`prepare-pr` 在 PR 工作前检查干净且已提交的变更。可选的 Codex/Claude Code 生命周期 Hook 只会更早呈现 preflight 决策，属于需要显式安装和信任的加固层，并非完整强制边界。
-
-RG006 校验独立版本化的执行契约：已登记 runtime、精确包管理器身份、依赖准备、生命周期策略、有序 build/codegen/test 阶段与消费者声明。静态检查绝不声称已验证 clean checkout 或语义覆盖。详见 [执行契约与 RG006](docs/execution-contracts.md)。
-
-RG007 通过 `.repo-governance/architecture-contract.json` 提供显式启用的架构治理。它确定性扫描 JavaScript、TypeScript 与 Python import，构建文件及显式模块依赖图，阻断本次改动涉及的分层违规，并把循环依赖报告为非阻断 warning。架构风格与外部包含义只由仓库契约定义；规则引擎不调用 LLM，也不改写代码。详见 [架构治理与 RG007](docs/architecture-governance.md)。
-
-提交 `.repo-governance/architecture-baseline.json` 后才会单独启用架构漂移治理。使用 `repo-governance architecture baseline` 创建确定性快照，使用 `repo-governance architecture drift` 查看指标、事实增删和 0–100 健康分；低于 70 分会阻断，70–99 分的 warning 可见但不令检查失败。详见 [架构漂移](docs/architecture-drift.md)。
-
-v1.3 的迁移与发布边界见 [v1.3 release](docs/v1.3-release.md)。
-
-v1.4 新增确定性的架构与变更范围治理、任务失败基线、漂移报告和共享 Agent 范围顾问。升级说明见 [v1.4 release](docs/v1.4-release.md)。
-
-v1.5 新增确定性的比例工程预算、显式变更类别授权、基于路径的工程等级、有限验证建议和当前 diff 测试执行证据。升级说明见 [v1.5 release](docs/v1.5-release.md)。
-
-每个受保护 workflow 只通过 profile consumer 关联，并用 `clean: true` checkout 事件声明的精确 revision。job 可以设置已声明 runtime，并恢复 workspace 外的包下载缓存；依赖安装、build、codegen 与测试必须由受治理执行统一完成，不能成为独立 workflow 步骤。
-
-Pre-push canonical base 只来自命名 push remote 及其 remote-tracking 默认分支；Hook 绝不 fetch，也不替换为本地 branch。每个唯一 tip/base 组合都在 detached 本地 clone 中执行，不能复用源工作区依赖或 ignored 产物。CI 使用事件中的精确 head/base SHA，并把 base 写入 `refs/repo-governance/base`。
-
-## 已有仓库快速接入
-
-先安装经过验证且锁定版本的 release，然后运行一次显式接入命令：
+必须显式选择 Preset，repo-governance 不会自行猜测：
 
 ```sh
 cd existing-repository
 repo-governance bootstrap --preset node-library --json
 ```
 
-`bootstrap` 会验证所选静态 Preset、写入 `.repo-governance.json` 和精简 GitHub Actions caller、组合当前仓库实际生效的 pre-push hook，并运行 adoption 检查。它绝不会覆盖已有治理配置；接入失败时会恢复原 Hook，并删除本次尝试创建的文件。
+内置 Preset 包括 `node-library`、`node-service`、`react-web`、`tauri-desktop` 和 `python-service`。Bootstrap 会写入治理配置与精简 GitHub Actions caller，连接现有 pre-push Hook；如果接入失败，会回滚本次创建的文件。
 
-内置 Preset 包括 `node-library`、`node-service`、`react-web`、`tauri-desktop` 和 `python-service`。详见 [Preset 说明](docs/presets.md) 与 [接入模型](docs/adoption-model.md)。
-
-## 新建与克隆仓库快速接入
-
-需要在创建或克隆仓库的同时完成治理接入时，使用以下显式入口：
+### 新建或克隆时接入治理
 
 ```sh
 repo-governance new my-service --preset node-service --json
 repo-governance clone https://example.com/team/project.git --preset node-service --json
 ```
 
-`new` 创建只含治理骨架的 Git 仓库，只提交生成的治理文件，然后运行标准检查；它不会生成业务代码。`clone` 保留原提交历史，并把生成的治理文件作为未提交变更留给开发者审阅。如果 clone、bootstrap、check 或 Git 身份验证失败，只会删除本次命令创建的目标目录。
+`new` 只创建治理仓库，不生成业务代码；`clone` 保留原历史，并把生成的治理文件作为未提交变更留给开发者审阅。原生 `git init` 和 `git clone` 永远不会被拦截。
 
-本工具绝不会拦截原生 `git clone` 或 `git init`。只有显式使用 `repo-governance clone`、`new` 或 `bootstrap` 才会获得组合流程；CLI 不会猜 Preset、静默 bootstrap 或自动写入 GitHub 状态。
+## 日常工作流
 
-## 准备 Pull Request
-
-提交完计划纳入 PR 的全部变更后，运行确定性预检：
+![检查结果示例，展示实际工程 Profile、验证建议、治理决策与停止建议](./docs/assets/readme/terminal-check.svg)
 
 ```sh
+# Agent 修改仓库文件或运行任务测试前
+repo-governance preflight --json
+
+# 检查当前仓库变更
+repo-governance check --json
+
+# 为当前 diff 记录已声明测试的成功执行结果
+repo-governance verify-test --entry <id> --json
+
+# 计划纳入 PR 的改动已提交且工作区干净后
 repo-governance prepare-pr --json
 ```
 
-`prepare-pr` 要求工作区干净，并把普通 `check` 结果投影为 RG001–RG005 分组、必要测试证据、workflow findings、命令契约 findings 和 Markdown PR body 草稿。它不会创建 PR、调用 `gh`、发表评论或写入 GitHub。报告始终保留 RG001 能力边界：存在配套测试类别证据不代表语义覆盖已经验证。
+接入后，pre-push Hook 会自动运行。它会安全捕获 Hook 输入，把已有 Hook 保存为经过校验的 sidecar，并在 detached 本地 clone 中运行每个唯一的 tip/base 组合。它绝不 fetch，也不会降级到可变工作区配置、默认 engine 或旧版 `check` 路径。
 
-## 手工初始化未来仓库
+## 命令面总览
+
+| 工作流 | 命令 |
+| --- | --- |
+| 仓库生命周期 | `init`、`bootstrap`、`new`、`clone`、`update` |
+| 变更治理 | `preflight`、`check`、`verify-test`、`prepare-pr` |
+| 架构与失败基线 | `architecture baseline`、`architecture drift`、`baseline create`、`baseline compare` |
+| Hook 管理 | `hooks install`、`connect`、`doctor`、`disconnect`、`uninstall` |
+| 本机清单 | `repositories list/register/unregister`、`engines list/prune` |
+| 验证分发 | `install`、`update`、`version check`、`skills install` |
+| GitHub 强制层 | `github validate-waivers`、`github enforce` |
+
+删除或远端写入必须使用 `engines prune --confirm`、`github enforce --confirm` 等显式命令；dry-run 或未确认形式保持只读。
+
+## 架构与任务契约
+
+| 契约 | 生命周期 | 用途 |
+| --- | --- | --- |
+| [架构契约](./docs/architecture-governance.md) | 仓库级、长期存在 | 为 RG007 声明层、模块与允许的依赖方向。 |
+| [架构基线](./docs/architecture-drift.md) | 仓库级快照 | 跟踪结构漂移与确定性的 0–100 健康分。 |
+| [Task Contract](./docs/change-scope-governance.md) | 单一目标、短期存在 | 为 RG008/RG009 声明允许路径、范围、变更类别、预算与工程 Profile。 |
+| [执行契约](./docs/execution-contracts.md) | 版本化仓库策略 | 为 RG006 声明 runtime 与依赖、构建、代码生成、测试的有序执行图。 |
+
+所有契约都必须显式声明。架构契约和 Task Contract 对已有仓库仍是可选能力；缺失的声明会继续保持缺失，引擎不会从项目惯例中合成策略。
+
+## Codex 与 Claude Code
+
+与 Agent 无关的建议知识位于 `playbooks/`。八个精简 Codex Skills 和八个对应的 Claude Code 命令模板调用锁定的 CLI，并解释其结构化报告；它们不会重新实现硬规则，也不能覆盖治理决策。
+
+共享顾问覆盖测试影响、测试层级分类、CI 失败分诊、公共命令保护、架构审查、变更范围审查、Agent 预检门禁与接入。完整契约和安装模型见 [Agent 适配说明](./docs/agent-adapters.md)。
+
+## 安全模型
+
+- **离线执行：** preflight、仓库检查、Git Hooks、架构分析、范围评估和 pre-push 验证均不访问网络；`repo-governance version check` 是版本提醒中唯一联网的命令。
+- **绑定 revision：** pre-push 读取候选提交的 engine identity 与协议；CI 使用事件声明的精确 head/base SHA。
+- **失败关闭：** 协议字段缺失、版本不兼容、配置损坏、engine 缺失或校验失败都会阻断，而不是选择兜底路径。
+- **最小权限：** 核心 PR 检查只拥有只读 contents 与 pull-request 权限；可选报告与不可信 checkout 执行相互隔离。
+- **验证 Release：** 平台压缩包携带 checksum 与 GitHub artifact attestation；发布 catalog 具有独立的 Ed25519 detached signature。
+- **显式远端写入：** GitHub enforcement 在没有 `--confirm` 时只读；写入后必须回读到真实生效的规则才算成功。
+
+完整保证和限制见[接入模型](./docs/adoption-model.md)、[签名发布 catalog](./docs/release-catalog.md)与 [v1.5 发布边界](./docs/v1.5-release.md)。
+
+## 文档导航
+
+| 主题 | 指南 |
+| --- | --- |
+| Preset 与仓库接入 | [Preset 说明](./docs/presets.md) · [接入模型](./docs/adoption-model.md) · [Agent 自动接入](./docs/agent-auto-adoption.md) |
+| 执行与 CI | [执行契约](./docs/execution-contracts.md) · [任务失败基线](./docs/task-failure-baseline.md) |
+| 架构 | [架构治理](./docs/architecture-governance.md) · [架构漂移](./docs/architecture-drift.md) |
+| 任务范围与比例工程 | [变更范围治理](./docs/change-scope-governance.md) · [v1.5 发布说明](./docs/v1.5-release.md) |
+| Agent 集成 | [Agent 适配说明](./docs/agent-adapters.md) · [Codex adapter](./adapters/codex/README.md) · [Claude Code adapter](./adapters/claude-code/README.md) |
+| Release 与升级 | [发布 catalog](./docs/release-catalog.md) · [历史版本](./docs/v1.4-release.md) |
+
+## 开发
+
+使用 Node.js 22：
 
 ```sh
-repo-governance init --json
-# 审阅检测到的候选项并定义严格映射。
-repo-governance init --accept
+npm ci
+npm run check:static
+npm test
 ```
 
-安装仅面向未来仓库。`hooks install` 会配置 Git template，但绝不会扫描或修改现有仓库。除非用户明确指定 `--compose`，否则会保留已有的全局 `init.templateDir` 配置；组合时如有文件冲突则停止。使用 Husky 或其他 `core.hooksPath` 的仓库会保留已有 pre-push 命令，并在其后追加 dispatcher 调用。
+使用 `npm run build:sea` 构建自包含 CLI 与版本感知 launcher。Hook 和接入测试必须使用隔离的临时 HOME 与仓库；开发期间绝不能接入或修改无关的已有仓库。
 
-版本化配置 Schema 位于 `schemas/repo-governance.schema.json`。豁免文件位于 `.repo-governance/waivers/*.json`，只能应用于 `RG001`；固定业务 diff 指纹会排除豁免文件自身所在的目录，并且豁免文件永远不会保存 head SHA 或审批状态。
-
-## 仓库登记与 engine 清理
-
-`bootstrap`、`new`、`clone`、`update` 成功后，会把仓库的规范绝对路径、登记时 realpath 和锁定 engine 身份写入用户级 `repositories.json`。登记表写入同时使用进程锁和临时文件 atomic rename，避免并发写入丢记录。`repositories register [path]`、`repositories list`、`repositories unregister <path>` 用于显式管理清单。unregister 不要求路径仍存在；仓库移动后必须重新 register，暂时不可访问的登记路径在显式 unregister 前仍保护对应 engine。
-
-`engines list` 会列出经过验证的本机 engine，旧版缺少元数据或内容损坏时标记为 `unknown`。`engines prune --dry-run` 绝不删除文件；`engines prune --confirm` 会在删除前重新读取当前默认指针和登记表并重新计算。默认 engine、登记引用、所有 unknown engine、最新可用 engine 和至少一个历史可用 engine 都受保护。输出同时给出预计释放空间和安全边界：没有登记引用并不等于电脑上绝对没有未登记仓库仍在引用。
-
-## 版本提醒
-
-`repo-governance version check` 是版本提醒中唯一联网的命令。它从规范的 `CoaseEdge/repo-governance` GitHub Release 下载历史 catalog 与 Ed25519 detached signature，逐跳校验 HTTPS 重定向，以 executable 内固定公钥验签，拒绝 schema 错误和版本回退，然后原子缓存已验证的原始字节。该命令只给建议，不下载或安装 engine。
-
-`preflight` 不联网，也不写提醒状态；它只读取并重新验签本机缓存，JSON 每次固定返回 `updateAdvisory`。普通 preflight 在落后至少两个已发布版本，或后续任一版本标记为安全修复时显示黄色警告；只落后一个普通版本不提示。Git pre-push 保持完全离线且不显示升级提醒。无缓存、缓存损坏、当前版本不在 catalog 中分别返回 `missing`、`invalid`、`current_unknown`，不阻塞正常仓库工作。详见[签名发布 catalog](docs/release-catalog.md)。
-
-## 测试分层（RG002）
-
-可执行测试入口必须且只能属于 `pr-blocking`、`nightly` 或 `manual-smoke` 中的一层。fixture、mock、helper、setup 模块、共享测试工具和测试数据应归入 `testSupport`，不会被归类为独立测试入口。PR blocking 命令绝不能触达 nightly 或 manual 入口，即使该入口在没有真实 secret 时会跳过执行。
-
-V1 的命令图刻意只支持 `package.json` scripts、pnpm workspace/filter/run 调用、Bun scripts、配置中登记的 Python/pytest 入口和显式别名。受保护调用链中的动态拼接、`eval`、Makefile 分派、不透明 shell 脚本和未知间接调用都属于配置错误；规则引擎不会进行猜测。
-
-## Workflow 单一规则源（RG003）
-
-硬门禁只作用于明确登记为策略检查的 job 和 step。登记的 step 必须调用 allowlist 中的中央 Action、CLI 或正式仓库守卫；正式策略 job 中出现未登记的 `run` step 会导致失败。要求存在的守卫文件必须真实存在，并通过配置的精确入口被调用。
-
-普通构建、环境准备和产物处理 job 可以使用多行脚本。CLI 不会使用正则启发式判断任意 YAML 是否“看起来像”重复实现了 secret、大小或卫生检查；提供建议的 Skills 可以提示审阅此类代码，但不会将其变成确定性失败。
-
-## 公共命令契约（RG004）
-
-团队确认的每个公共入口都记录其 manifest、命令名称、精确定义的 SHA-256、语义、测试层级以及契约测试、文档和 workflow 消费者。`pnpm test`、`check:static` 和 `tauri:build` 只是初始化器示例，并非硬编码的全局命令。
-
-修改命令文本但不更新契约会导致失败。主动接受新语义后，如果配置的契约测试、文档和 workflow 消费者没有在同一 diff 中更新，也会导致失败。这样可以防止熟悉的命令名称悄悄获得不同的含义。
-
-## 在 Codex 与 Claude Code 中使用
-
-Agent 无关的建议知识统一位于 `playbooks/`。八个精简 Codex wrapper 位于 `adapters/codex/skills/`；Claude Code 使用 `adapters/claude-code/` 下的 `CLAUDE.md` 和八个对应命令模板。两套适配声明相同的 CLI 命令、JSON 报告版本、Playbook ID、消费字段和建议标签。它们调用锁定版本的 CLI 并解释 JSON，不重新实现硬规则，也不自行读取用户策略。共享的 `architecture-review` 顾问只解释同一份 `check --json` 中的 RG007 与架构漂移字段，不重新计算判定或健康分。`change-scope-review` 保留 RG008 范围与漂移证据，按报告严重级别停止或暂停 Agent 工作，不重新计算路径、预算或分数。
-
-CI 失败分类会先选择 `true-bug`、`stale-test`、`stale-workflow`、`wrong-ci-tier` 或 `insufficient-evidence`，然后才提出修复建议。这些是建议标签；CLI RG findings 始终是确定性事实。
-
-Release 与源码安装会把规范 Playbook、两套 adapter 和可选 Hook 模板保存在已安装引擎的版本锁定 `agent-assets/` 目录中。Codex Skill 还会安装到 `CODEX_HOME`；可显式把选定的 Claude 模板复制到目标仓库的 `.claude/commands/`。详见 [Agent 适配说明](docs/agent-adapters.md)。
-
-## GitHub 强制层与豁免审批
-
-未来仓库会获得一个精简的 `pull_request` 调用 workflow，并固定到与 `engineCommitSha` 相同的完整提交。reusable workflow 会 checkout 实时的不可信 head、获取完整目标分支历史、自行计算 merge-base，并运行同一 CLI。它绝不会使用 `pull_request_target`。核心检查只拥有 `contents: read` 和 `pull-requests: read` 权限；可选评论在单独的 job 中运行，该 job 不会 checkout 或执行 PR 代码。
-
-远端 `RG005` 验证会读取实时 Review。允许审批者的最新 Review 必须为 `APPROVED`，且其 `commit_id` 必须等于实时 PR head SHA。包括仅修改豁免文件在内的任何后续提交都会使审批失效；业务变更还会使固定 diff 指纹失效。
-
-`repo-governance github enforce` 会对能力、权限、分支保护和 ruleset 执行只读预检。不带 `--confirm` 时绝不会写入。缺少管理权限或存在有效 ruleset 冲突时返回 `blocked`；确认执行后的修改只有在回读结果包含 required check 时才算成功。
-
-## 发布与安装
-
-发布构建需要 Node.js 22.x，并为 CLI engine 和版本感知 launcher 生成各平台的 Node SEA 可执行文件。launcher 自包含，不依赖业务仓库的 Node 运行时。GitHub Releases 每个平台只发布一个压缩包（Linux/macOS 使用 `.tar.gz`，Windows 使用 `.zip`），并附带顶层 `SHA256SUMS`、`release-index.json`、确定性 `release-catalog.json` 与 `release-catalog.sig`；不使用 GitHub Packages。每个压缩包内部包含 CLI、launcher、八个 Codex Skill、规范 Playbook、Codex/Claude adapter 与 Hook 模板、包括 `agent-policy.schema.json` 在内的策略 Schema、内部 manifest 和平台内校验文件。发布产物包含 SHA-256 元数据和 GitHub artifact attestation，后者绑定到 `CoaseEdge/repo-governance`、`.github/workflows/release.yml`、源码提交、平台压缩包以及 release manifest。经过 attestation 的 release manifest 还会绑定确定性的 Skill、策略资产和 Agent 资产目录摘要。如果 checksum 或 attestation 任一验证失败，安装都会失败；绝不单独信任 checksum。版本提醒 catalog 使用独立真实性边界：固定来源是 owner 转移后的规范仓库 `CoaseEdge/repo-governance`，且必须通过 executable 内单一 Ed25519 公钥验签。
-
-在 macOS/Linux 上，engine、launcher、默认指针和兼容 dispatcher 数据使用 `${XDG_DATA_HOME:-$HOME/.local/share}/repo-governance`；在 Windows 上使用 `%LOCALAPPDATA%/repo-governance`。POSIX 使用临时文件与 atomic rename 更新 launcher 和指针；Windows 使用版本化 launcher 路径，绝不覆盖正在执行的二进制，入口验证切换后才生效，被锁定的旧文件留待后续 prune。Skills 使用 `${CODEX_HOME:-$HOME/.codex}/skills`。可选的 shareable-index 边界记录在 `adapters/` 下，绝不会成为公开项目的运行时依赖。
-
-面向本地 hooks、CI、Codex 和 Claude Code 的确定性仓库治理工具
+本项目采用 [MIT License](./LICENSE)。
