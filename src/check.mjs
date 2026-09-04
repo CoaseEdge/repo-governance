@@ -13,6 +13,8 @@ import { evaluateWorkflowConsumers } from "./workflow-consumers.mjs";
 import { evaluateRg008 } from "./rg008.mjs";
 import { loadTaskContract } from "./task-contract.mjs";
 import { evaluateTaskDrift } from "./task-drift.mjs";
+import { collectChangeMetrics } from "./change-metrics.mjs";
+import { evaluateRg009 } from "./rg009.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -36,9 +38,13 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
   const architectureDrift = evaluateArchitectureDrift(repo, architectureContract, rg007.architectureGraph, changed);
   const taskContract = mode === "standard" ? loadTaskContract(repo) : null;
   const rg008 = evaluateRg008(repo, taskContract, changed);
+  const changeMetrics = taskContract?.schemaVersion === 2
+    ? collectChangeMetrics(repo, config, taskContract, endpoints.canonicalBaseSha, endpoints.headSha)
+    : null;
+  const rg009 = evaluateRg009(taskContract, changeMetrics);
   const taskDrift = evaluateTaskDrift(taskContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
-  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings];
+  const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings, ...rg009.findings];
   const blockingFindings = findings.filter((finding) => finding.severity !== "warning");
   return {
     schemaVersion: 1,
