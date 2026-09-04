@@ -1,6 +1,6 @@
 {
   "name": "@andrewlislin/repo-governance",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Deterministic repository governance shared by local hooks, CI, Codex, and Claude Code",
   "type": "module",
   "private": false,
