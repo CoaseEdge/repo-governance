@@ -20,6 +20,22 @@ test("high-impact mappings may require alternatives or multiple independent cate
   assert.equal(validateConfig(config, { enforceEngine: false }), config);
 });
 
+test("test evidence modes and entry categories are explicit and backward compatible", () => {
+  const config = baseConfig({
+    highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit"], evidenceMode: "either" }] }],
+    testEntries: [{ id: "unit", type: "command", command: "node --test", node: "package.json#test", categories: ["unit"] }],
+  });
+  assert.equal(validateConfig(config, { enforceEngine: false }), config);
+  assert.throws(
+    () => validateConfig(baseConfig({ highImpactMappings: [{ businessPaths: ["src/**"], requirements: [{ anyOf: ["unit"], evidenceMode: "semantic" }] }] }), { enforceEngine: false }),
+    /invalid evidenceMode/,
+  );
+  assert.throws(
+    () => validateConfig(baseConfig({ testEntries: [{ id: "unit", type: "command", categories: ["unknown"] }] }), { enforceEngine: false }),
+    /invalid evidence categories/,
+  );
+});
+
 test("unknown mapped test category is a configuration error", () => {
   assert.throws(() => validateConfig(baseConfig({
     highImpactMappings: [{ businessPaths: ["src/api/**"], requirements: [{ anyOf: ["anything"] }] }],

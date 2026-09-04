@@ -125,6 +125,25 @@ test("prepare-pr CLI emits the projected check result without remote writes", as
   assert.equal(report.sourceCheckResult.mode, "standard");
 });
 
+test("verify-test CLI forwards one declared test entry and base", async () => {
+  const repo = repository();
+  const stdout = sink();
+  let received;
+  const code = await main(["verify-test", "--entry", "unit-suite", "--base", "main", "--json"], {
+    cwd: repo,
+    stdout: stdout.stream,
+    stderr: sink().stream,
+    verifyTestEntry(_repo, options) {
+      received = options;
+      return { schemaVersion: 1, command: "verify-test", testEntryId: options.entryId, result: "pass", alreadyVerified: false };
+    },
+  });
+  assert.equal(code, 0);
+  assert.equal(received.entryId, "unit-suite");
+  assert.equal(received.base, "main");
+  assert.equal(JSON.parse(stdout.value()).command, "verify-test");
+});
+
 test("verify-execution CLI forwards the exact CI profile and event file", async () => {
   const repo = repository();
   const eventFile = join(temporaryDirectory("repo-governance-cli-event-"), "event.json");

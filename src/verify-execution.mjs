@@ -4,6 +4,7 @@ import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { checkRepository } from "./check.mjs";
 import { readConfig } from "./config.mjs";
 import { GovernanceError } from "./errors.mjs";
+import { executionEvidenceForProfile } from "./execution-evidence.mjs";
 import { resolveCommit } from "./git.mjs";
 import { PRE_PUSH_PROTOCOL_VERSION } from "./protocol.mjs";
 import { run, runGit } from "./process.mjs";
@@ -148,10 +149,15 @@ export function verifyExecution(repo, {
   }
   initialWorkspaceState(repo);
   writeCanonicalBaseRef(repo, revision.canonicalBaseInputSha);
-  const staticCheck = checkRepository(repo, { base: "refs/repo-governance/base", head: "HEAD" });
-  if (!staticCheck.ok) {
-    fail("Candidate static RG001-RG006 check failed before dependency preparation.", "RG_STATIC_CHECK", {
-      findings: staticCheck.findings,
+  const preExecutionCheck = checkRepository(repo, {
+    base: "refs/repo-governance/base",
+    head: "HEAD",
+    executionEvidence: [],
+    allowPendingExecutionEvidence: true,
+  });
+  if (!preExecutionCheck.ok) {
+    fail("Candidate governance check failed before dependency preparation.", "RG_STATIC_CHECK", {
+      findings: preExecutionCheck.findings,
       testedCommitSha,
     });
   }
@@ -171,6 +177,18 @@ export function verifyExecution(repo, {
     errorCode: "RG_PROFILE_EXECUTION",
   });
   verifyFinalRevision(repo, testedCommitSha, revision.canonicalBaseInputSha);
+  const executionEvidence = executionEvidenceForProfile(repo, config, profile);
+  const staticCheck = checkRepository(repo, {
+    base: "refs/repo-governance/base",
+    head: "HEAD",
+    executionEvidence,
+  });
+  if (!staticCheck.ok) {
+    fail("Candidate governance check failed after governed execution.", "RG_TEST_EVIDENCE", {
+      findings: staticCheck.findings,
+      testedCommitSha,
+    });
+  }
   return {
     schemaVersion: 1,
     profileId,
@@ -186,6 +204,8 @@ export function verifyExecution(repo, {
     workflowConsumersVerified: staticCheck.workflowConsumersVerified,
     cleanCheckoutVerified: true,
     semanticCoverageVerified: false,
+    executionEvidence,
+    preExecutionCheck,
     staticCheck,
   };
 }
