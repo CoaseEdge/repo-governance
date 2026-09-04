@@ -21,8 +21,10 @@ test("Agent adoption guide contains three complete, valid preflight reports", ()
 });
 
 test("bilingual entry points document the three-layer boundary and unsafe exclusions", () => {
-  const english = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const chinese = readFileSync(new URL("../README.zh-CN.md", import.meta.url), "utf8");
+  const chinese = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const english = readFileSync(new URL("../README.en.md", import.meta.url), "utf8");
+  assert.match(chinese, /为什么使用 repo-governance/);
+  assert.match(english, /Why repo-governance/);
   for (const contents of [english, chinese]) {
     assert.match(contents, /preflight --json/);
     assert.match(contents, /status/);
