@@ -145,6 +145,26 @@ Repository configuration may define all four engineering profiles and explicit p
 
 For a version 2 contract, `engineeringProfile.effective` is the higher of the requested profile and the highest minimum profile among risk zones matched by changed paths. `raisedBy` lists only the explicit zones that establish a higher effective level. No match leaves the requested profile unchanged. Version 1 contracts do not activate profile evaluation. The engine never lowers a profile or infers risk from names or code content.
 
+## Verification and stopping advice
+
+`check --json` and `prepare-pr --json` expose the same deterministic advice. In the absence of repository overrides, `small`, `standard`, `high`, and `critical` map to `targeted`, `targeted-plus-related`, `broad`, and `full`. `fullSuiteRequired` is true only when the resolved verification level is `full`. This profile-derived advice is a verification floor and does not override `requiredTests`, execution contracts, or other repository gates. A repository may provide the explicit `engineeringProfiles` policy shown above; the engine does not inspect commands or infer a stronger or weaker level.
+
+```json
+{
+  "verificationAdvice": {
+    "profile": "small",
+    "requiredLevel": "targeted",
+    "fullSuiteRequired": false
+  },
+  "governanceDecision": "satisfied",
+  "stopAdvice": {
+    "action": "stop-if-objective-satisfied"
+  }
+}
+```
+
+`governanceDecision` is `blocked` when blocking findings exist, `needs-confirmation` when RG008 reports a warning or task drift is medium/high, and `satisfied` otherwise. The corresponding actions are `resolve-governance-findings`, `confirm-scope`, and `stop-if-objective-satisfied`. The engine never claims that the user objective is complete. When no version 2 Task Contract is active, `verificationAdvice` is `null`.
+
 ## Task drift score
 
 Standard checks also expose a `taskDrift` object with `taskDriftScore`, `severity`, and deterministic `reasons`. The score starts at zero and adds:
