@@ -124,6 +124,27 @@ Mappings are ordered repository policy, may be supplied by an explicit preset, a
 
 RG009 compares `newFiles`, `addedLines`, `testFiles`, and `testAddedLines` with `maxNewFiles`, `maxAddedLines`, `maxTestFiles`, and `maxTestAddedLines`. Each exceeded limit emits a non-waivable `COMPLEXITY_BUDGET_EXCEEDED` error with the budget name, actual value, and limit. For version 2 contracts, a path whose effective mapped category is absent from `allowedChangeCategories` emits `UNAUTHORIZED_CHANGE_CATEGORY` with its category and path. Unmapped paths have no inferred category. Version 1 contracts do not evaluate RG009. RG008 remains responsible only for task location and its existing scope budgets.
 
+## Effective engineering profile
+
+Repository configuration may define all four engineering profiles and explicit path-based risk zones:
+
+```json
+{
+  "engineeringProfiles": {
+    "small": { "verification": "targeted" },
+    "standard": { "verification": "targeted-plus-related" },
+    "high": { "verification": "broad" },
+    "critical": { "verification": "full" }
+  },
+  "riskZones": [
+    { "id": "auth", "paths": ["src/auth/**"], "minimumProfile": "high" },
+    { "id": "payments", "paths": ["src/payments/**"], "minimumProfile": "critical" }
+  ]
+}
+```
+
+For a version 2 contract, `engineeringProfile.effective` is the higher of the requested profile and the highest minimum profile among risk zones matched by changed paths. `raisedBy` lists only the explicit zones that establish a higher effective level. No match leaves the requested profile unchanged. Version 1 contracts do not activate profile evaluation. The engine never lowers a profile or infers risk from names or code content.
+
 ## Task drift score
 
 Standard checks also expose a `taskDrift` object with `taskDriftScore`, `severity`, and deterministic `reasons`. The score starts at zero and adds:

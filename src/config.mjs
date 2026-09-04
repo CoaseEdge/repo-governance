@@ -5,6 +5,8 @@ import { DIFF_FINGERPRINT_ALGORITHM } from "./fingerprint.mjs";
 import { runtimeIdentity } from "./version.mjs";
 
 export const CONFIG_FILE = ".repo-governance.json";
+const ENGINEERING_PROFILES = ["small", "standard", "high", "critical"];
+const VERIFICATION_LEVELS = ["targeted", "targeted-plus-related", "broad", "full"];
 
 function expect(condition, message, details = {}) {
   if (!condition) {
@@ -43,6 +45,27 @@ export function validateConfig(config, { identity = runtimeIdentity(), enforceEn
           && new Set(patterns).size === patterns.length,
         `Invalid paths for change category ${category}.`,
       );
+    }
+  }
+  if (config.engineeringProfiles !== undefined) {
+    expect(config.engineeringProfiles && typeof config.engineeringProfiles === "object" && !Array.isArray(config.engineeringProfiles), "engineeringProfiles must be an object.");
+    expect(Object.keys(config.engineeringProfiles).length === ENGINEERING_PROFILES.length, "engineeringProfiles must declare small, standard, high, and critical.");
+    for (const profile of ENGINEERING_PROFILES) {
+      const policy = config.engineeringProfiles[profile];
+      expect(policy && typeof policy === "object" && !Array.isArray(policy), `engineeringProfiles.${profile} is required.`);
+      expect(Object.keys(policy).length === 1 && VERIFICATION_LEVELS.includes(policy.verification), `engineeringProfiles.${profile}.verification is invalid.`);
+    }
+  }
+  if (config.riskZones !== undefined) {
+    expect(Array.isArray(config.riskZones), "riskZones must be an array.");
+    const riskZoneIds = new Set();
+    for (const zone of config.riskZones) {
+      expect(zone && typeof zone === "object" && !Array.isArray(zone), "Each risk zone must be an object.");
+      expect(Object.keys(zone).every((key) => ["id", "paths", "minimumProfile"].includes(key)), `Risk zone ${zone.id || "<unknown>"} contains unsupported fields.`);
+      expect(typeof zone.id === "string" && /^[a-z][a-z0-9-]*$/.test(zone.id) && !riskZoneIds.has(zone.id), `Invalid or duplicate risk zone id: ${zone.id}.`);
+      riskZoneIds.add(zone.id);
+      expect(Array.isArray(zone.paths) && zone.paths.length > 0 && zone.paths.every((path) => typeof path === "string" && path.length > 0) && new Set(zone.paths).size === zone.paths.length, `Risk zone ${zone.id} needs unique paths.`);
+      expect(ENGINEERING_PROFILES.includes(zone.minimumProfile), `Risk zone ${zone.id} has an invalid minimumProfile.`);
     }
   }
   expect(Array.isArray(config.highImpactMappings), "highImpactMappings must be an array.");

@@ -15,6 +15,7 @@ import { loadTaskContract } from "./task-contract.mjs";
 import { evaluateTaskDrift } from "./task-drift.mjs";
 import { collectChangeMetrics } from "./change-metrics.mjs";
 import { evaluateRg009 } from "./rg009.mjs";
+import { resolveEngineeringProfile } from "./engineering-profile.mjs";
 
 export function checkRepository(repo, { base, head = "HEAD", now } = {}) {
   const config = readConfig(repo);
@@ -42,6 +43,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     ? collectChangeMetrics(repo, config, taskContract, endpoints.canonicalBaseSha, endpoints.headSha)
     : null;
   const rg009 = evaluateRg009(taskContract, changeMetrics);
+  const engineeringProfile = resolveEngineeringProfile(taskContract, config, changed);
   const taskDrift = evaluateTaskDrift(taskContract, changed);
   const workflowConsumers = evaluateWorkflowConsumers(repo, config);
   const findings = [...waived.findings, ...rg002.findings, ...rg003.findings, ...rg004.findings, ...rg006.findings, ...workflowConsumers.findings, ...rg007.findings, ...architectureDrift.findings, ...rg008.findings, ...rg009.findings];
@@ -65,6 +67,7 @@ function evaluateRepository(repo, config, endpoints, changed, { now, mode = "sta
     architectureDrift: architectureDrift.architectureDrift,
     scopeFindings: rg008.findings,
     taskDrift,
+    ...(engineeringProfile ? { engineeringProfile } : {}),
     workflowConsumersVerified: workflowConsumers.verified,
     cleanCheckoutVerified: null,
     cleanCheckoutStatus: "not-run",

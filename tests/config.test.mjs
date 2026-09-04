@@ -44,6 +44,28 @@ test("change category mappings require explicit categories and unique path patte
   );
 });
 
+test("engineering profiles and risk zones require complete explicit path policy", () => {
+  const engineeringProfiles = {
+    small: { verification: "targeted" },
+    standard: { verification: "targeted-plus-related" },
+    high: { verification: "broad" },
+    critical: { verification: "full" },
+  };
+  const config = baseConfig({
+    engineeringProfiles,
+    riskZones: [{ id: "auth", paths: ["src/auth/**"], minimumProfile: "high" }],
+  });
+  assert.equal(validateConfig(config, { enforceEngine: false }), config);
+  assert.throws(
+    () => validateConfig(baseConfig({ engineeringProfiles: { ...engineeringProfiles, critical: undefined } }), { enforceEngine: false }),
+    /engineeringProfiles\.critical/,
+  );
+  assert.throws(
+    () => validateConfig(baseConfig({ riskZones: [{ id: "auth", paths: [], minimumProfile: "high" }] }), { enforceEngine: false }),
+    /needs unique paths/,
+  );
+});
+
 test("execution contract structure rejects missing versions and embedded runtimes", () => {
   assert.throws(
     () => validateConfig(baseConfig({ executionContractVersion: undefined }), { enforceEngine: false }),

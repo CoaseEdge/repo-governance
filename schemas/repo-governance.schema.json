@@ -69,6 +69,30 @@
         "items": { "type": "string", "minLength": 1 }
       }
     },
+    "engineeringProfiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["small", "standard", "high", "critical"],
+      "properties": {
+        "small": { "$ref": "#/$defs/engineeringProfile" },
+        "standard": { "$ref": "#/$defs/engineeringProfile" },
+        "high": { "$ref": "#/$defs/engineeringProfile" },
+        "critical": { "$ref": "#/$defs/engineeringProfile" }
+      }
+    },
+    "riskZones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "paths", "minimumProfile"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "paths": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "minimumProfile": { "enum": ["small", "standard", "high", "critical"] }
+        }
+      }
+    },
     "highImpactMappings": {
       "type": "array",
       "items": {
@@ -150,6 +174,14 @@
     "managedFiles": { "type": "array", "items": { "type": "string" } }
   },
   "$defs": {
+    "engineeringProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verification"],
+      "properties": {
+        "verification": { "enum": ["targeted", "targeted-plus-related", "broad", "full"] }
+      }
+    },
     "runtime": {
       "type": "object",
       "required": ["id", "systemTools"],
