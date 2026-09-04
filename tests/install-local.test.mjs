@@ -152,8 +152,8 @@ test("local source install reports bare command availability only when the bin d
 });
 
 test("README source install commands match the implemented script", () => {
-  const english = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const chinese = readFileSync(new URL("../README.zh-CN.md", import.meta.url), "utf8");
+  const chinese = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const english = readFileSync(new URL("../README.en.md", import.meta.url), "utf8");
   for (const contents of [english, chinese]) {
     assert.match(contents, /git clone https:\/\/github\.com\/CoaseEdge\/repo-governance\.git/);
     assert.match(contents, /cd repo-governance/);
