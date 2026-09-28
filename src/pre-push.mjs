@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readConfig } from "./config.mjs";
 import { GovernanceError } from "./errors.mjs";
-import { runGit } from "./process.mjs";
+import { runGit, withGitEnvironment } from "./process.mjs";
 import { resolvePrePushCandidates } from "./revisions.mjs";
 import { verifyExecution } from "./verify-execution.mjs";
 
@@ -20,6 +20,9 @@ function cloneCandidate(sourceRepo, candidate, env) {
     GIT_OPTIONAL_LOCKS: "0",
   };
   try {
+    // Hook-local Git variables point at the source repository, not the clone.
+    const localVariables = runGit(["rev-parse", "--local-env-vars"], { cwd: sourceRepo, env }).stdout;
+    for (const name of localVariables.trim().split(/\s+/)) delete gitEnv[name];
     runGit(["clone", "--local", "--no-hardlinks", "--no-checkout", "--", sourceRepo, checkout], { cwd: sourceRepo, env: gitEnv });
     runGit(["checkout", "--detach", "--no-recurse-submodules", candidate.pushedCommitSha], { cwd: checkout, env: gitEnv });
     return { temporaryRoot, checkout, env: gitEnv };
@@ -70,7 +73,8 @@ export function verifyPrePushExecution(sourceRepo, {
     const removeSignalHandlers = cleanupOnSignals(isolated.temporaryRoot);
     try {
       for (const profile of prePushProfiles(isolated.checkout)) {
-        const report = verify(isolated.checkout, {
+        // Scope implicit Git calls in the verifier without changing process.env.
+        const report = withGitEnvironment(isolated.env, () => verify(isolated.checkout, {
           profileId: profile.id,
           revision: {
             revisionSource: "pushed-ref-tip",
@@ -79,7 +83,7 @@ export function verifyPrePushExecution(sourceRepo, {
           },
           dependencyArgv: "hookArgv",
           env: isolated.env,
-        });
+        }));
         for (const ref of candidate.refs) {
           reports.push({
             ref: ref.ref,
